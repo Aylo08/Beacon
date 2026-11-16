@@ -44,8 +44,9 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
   const fail = useCallback(
     async (e: unknown) => {
       if (token && e instanceof UnauthorizedError && !(await edt.isTokenValid(token))) {
-        expire(); // renews the token (effects re-run with it) or logs out
-      } else setError(String(e));
+        // Renews the token (effects re-run with it) or logs out; false = couldn't reach CAS.
+        if (!(await expire())) setError('Session expirée et reconnexion impossible pour le moment. Réessayez.');
+      } else setError(e instanceof Error ? e.message : String(e));
     },
     [token, expire],
   );

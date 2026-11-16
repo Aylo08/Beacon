@@ -4,29 +4,12 @@
 // Cookies are handled by hand (credentials: 'omit') so this never touches the
 // WebView/system cookie stores.
 import { fetch } from 'expo/fetch';
+import { absorbCookies, cookieHeader, inputValue } from './http';
 
 const CAS_LOGIN = 'https://cas.univ-avignon.fr/cas/login';
 const UA = 'Mozilla/5.0 (Beacon timetable client)';
 
 export class InvalidCredentialsError extends Error {}
-
-/** "a=1; Path=/, b=2; Expires=Thu, 01 Jan 2026 …" → "a=1; b=2" */
-function cookieHeader(res: Response): string {
-  const raw = res.headers.get('set-cookie') ?? '';
-  return raw
-    .split(/,(?=\s*[^;,=\s]+=)/)
-    .map((c) => c.split(';')[0].trim())
-    .filter(Boolean)
-    .join('; ');
-}
-
-function decodeEntities(s: string) {
-  return s
-    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
-    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
-    .replace(/&quot;/g, '"')
-    .replace(/&amp;/g, '&');
-}
 
 /** Returns a one-time CAS ticket for `service`. Throws InvalidCredentialsError if CAS rejects them. */
 export async function casTicket(service: string, username: string, password: string): Promise<string> {
@@ -39,7 +22,7 @@ export async function casTicket(service: string, username: string, password: str
   // 1. Login form: session cookie + `execution` token.
   const page = await fetch(url, { headers: { 'User-Agent': UA }, credentials: 'omit', redirect: 'manual' });
   const html = await page.text();
-  const execution = html.match(/<input[^>]*name="execution"[^>]*>/)?.[0]?.match(/value="([^"]*)"/)?.[1];
+  const execution = inputValue(html, 'execution');
   if (!execution) throw new Error(`Could not read the CAS login form (HTTP ${page.status})`);
 
   // 2. Submit. Success is a 302 to `${service}?ticket=ST-…`; a wrong password re-renders the form.
@@ -50,13 +33,13 @@ export async function casTicket(service: string, username: string, password: str
     headers: {
       'User-Agent': UA,
       'Content-Type': 'application/x-www-form-urlencoded',
-      Cookie: cookieHeader(page),
+      Cookie: cookieHeader(absorbCookies({}, page)),
       Referer: url,
     },
     body: new URLSearchParams({
       username,
       password,
-      execution: decodeEntities(execution),
+      execution,
       _eventId: 'submit',
       geolocation: '',
     }).toString(),

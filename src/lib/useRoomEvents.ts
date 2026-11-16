@@ -40,7 +40,7 @@ export function useRoomEvents(token: string, codes: string[], onUnauthorized: ()
         } catch (e) {
           cache.current.set(code, 'error');
           if (e instanceof UnauthorizedError) {
-            console.warn(`[rooms] ${e.message}; checking whether the session is still valid`);
+            if (__DEV__) console.warn(`[rooms] ${e.message}; checking whether the session is still valid`);
             verifying.current ??= edt.isTokenValid(token).finally(() => {
               verifying.current = null;
             });

@@ -42,3 +42,6 @@ yarn-error.*
 
 # private agent notes (reverse-engineering details, personal setup)
 PRIVATE_AGENTS.md
+
+# editor swap files
+*.swp

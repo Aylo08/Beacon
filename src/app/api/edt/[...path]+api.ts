@@ -8,7 +8,17 @@ const FORWARDED_REQUEST_HEADERS = ['accept', 'content-type', 'token'];
 async function proxy(request: Request) {
   const url = new URL(request.url);
   const path = url.pathname.replace(/^\/api\/edt\/?/, '');
-  if (path.includes('..')) return Response.json({ error: 'Invalid path' }, { status: 400 });
+  // Only plain API paths: no dot segments (also percent-encoded, which URL parsing would resolve),
+  // backslashes or empty segments.
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(path);
+  } catch {
+    return Response.json({ error: 'Invalid path' }, { status: 400 });
+  }
+  if (!path || /(^|\/)\.\.?(\/|$)|\\|\/\//.test(decoded)) {
+    return Response.json({ error: 'Invalid path' }, { status: 400 });
+  }
 
   const headers: Record<string, string> = { ...OFFICIAL_ORIGIN_HEADERS };
   for (const name of FORWARDED_REQUEST_HEADERS) {

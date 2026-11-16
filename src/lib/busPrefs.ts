@@ -1,8 +1,9 @@
 // Bus preferences shared by the settings, the bus widget and the now bar:
 // the user's home stop (C3 / 22) and which Agroparc stop they use.
-import { useEffect, useSyncExternalStore } from 'react';
+import { useEffect } from 'react';
 import { CAMPUS_STOPS, type CampusStop } from './bus';
 import { getPref, setPref } from './prefs';
+import { createStore } from './store';
 
 export type BusPrefs = { homeStop: string | null; campusStop: CampusStop };
 
@@ -11,21 +12,16 @@ const CAMPUS_KEY = 'bus_campus_stop';
 // v1 of the bus widget stored ids instead of names.
 const LEGACY: Record<string, CampusStop> = { grandAvignon: 'Grand Avignon', montaigne: 'Montaigne' };
 
-let state: BusPrefs = { homeStop: null, campusStop: 'Grand Avignon' };
+const store = createStore<BusPrefs>({ homeStop: null, campusStop: 'Grand Avignon' });
+const set = store.set;
 let loaded: Promise<void> | null = null;
-const listeners = new Set<() => void>();
-
-function set(patch: Partial<BusPrefs>) {
-  state = { ...state, ...patch };
-  listeners.forEach((l) => l());
-}
 
 function load() {
   loaded ??= Promise.all([getPref(HOME_KEY), getPref(CAMPUS_KEY)]).then(([home, campus]) => {
     const c = campus && (LEGACY[campus] ?? campus);
     set({
       homeStop: home || null,
-      campusStop: (CAMPUS_STOPS as readonly string[]).includes(c ?? '') ? (c as CampusStop) : state.campusStop,
+      campusStop: (CAMPUS_STOPS as readonly string[]).includes(c ?? '') ? (c as CampusStop) : store.get().campusStop,
     });
   });
   return loaded;
@@ -45,11 +41,5 @@ export function useBusPrefs(): BusPrefs {
   useEffect(() => {
     load();
   }, []);
-  return useSyncExternalStore(
-    (l) => {
-      listeners.add(l);
-      return () => listeners.delete(l);
-    },
-    () => state,
-  );
+  return store.use();
 }

@@ -1,5 +1,5 @@
 // Native preference storage (small values only).
-import * as SecureStore from 'expo-secure-store';
+import { getItem, setItem } from './storage';
 
-export const getPref = (key: string) => SecureStore.getItemAsync(`pref_${key}`).catch(() => null);
-export const setPref = (key: string, value: string) => SecureStore.setItemAsync(`pref_${key}`, value).catch(() => {});
+export const getPref = (key: string) => getItem(`pref_${key}`);
+export const setPref = (key: string, value: string) => setItem(`pref_${key}`, value);

@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { casTicket, InvalidCredentialsError } from './casLogin';
 import { clearCredentials, getCredentials } from './credentials';
 import { CAS_SERVICE, edt } from './edt';
+import { clearIzly } from './izly';
 import { clearToken, getToken, setToken } from './session';
 import { clearStudentCard } from './studentCard';
 
@@ -18,31 +19,38 @@ type Session = {
   /**
    * Call when the API rejected the token. Signs in again in the background with
    * the saved credentials (the new token flows to every screen); logs out if
-   * that isn't possible.
+   * there are none or CAS rejects them. Resolves to false when renewing failed for
+   * a transient reason (network, CAS down): the session is kept, show an error.
    */
-  expire: () => Promise<void>;
+  expire: () => Promise<boolean>;
 };
 
 const SessionContext = createContext<Session | null>(null);
 
-/** Headless CAS login + ticket exchange with the saved credentials; null if unavailable. */
-async function renewToken(): Promise<string | null> {
+/**
+ * Headless CAS login + ticket exchange with the saved credentials.
+ * 'invalid' = the user must sign in again; 'unavailable' = try again later.
+ */
+async function renewToken(): Promise<{ token: string } | 'invalid' | 'unavailable'> {
   const creds = await getCredentials();
-  if (!creds) return null;
+  if (!creds) return 'invalid';
   try {
     const ticket = await casTicket(CAS_SERVICE, creds.username, creds.password);
-    return (await edt.exchangeTicket(ticket)).token;
+    return { token: (await edt.exchangeTicket(ticket)).token };
   } catch (e) {
-    if (e instanceof InvalidCredentialsError) await clearCredentials(); // password changed
-    console.warn('[session] silent re-login failed:', e instanceof Error ? e.message : e);
-    return null;
+    if (__DEV__) console.warn('[session] silent re-login failed:', e instanceof Error ? e.message : e);
+    if (e instanceof InvalidCredentialsError) {
+      await clearCredentials(); // password changed
+      return 'invalid';
+    }
+    return 'unavailable';
   }
 }
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [token, setTokenState] = useState<string | null | undefined>(undefined);
   const [message, setMessage] = useState<string>();
-  const renewing = useRef<Promise<void> | null>(null);
+  const renewing = useRef<Promise<boolean> | null>(null);
 
   useEffect(() => {
     getToken().then(setTokenState);
@@ -55,7 +63,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async (msg?: string) => {
-    await Promise.all([clearToken(), clearStudentCard(), clearCredentials()]);
+    await Promise.all([clearToken(), clearStudentCard(), clearCredentials(), clearIzly()]);
     setMessage(msg);
     setTokenState(null);
   }, []);
@@ -63,9 +71,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const expire = useCallback(() => {
     // Several screens can notice the expiry at once: renew only once.
     renewing.current ??= (async () => {
-      const fresh = await renewToken();
-      if (fresh) await signIn(fresh);
-      else await signOut(EXPIRED_MESSAGE);
+      const result = await renewToken();
+      if (result === 'unavailable') return false;
+      if (result === 'invalid') await signOut(EXPIRED_MESSAGE);
+      else await signIn(result.token);
+      return true;
     })().finally(() => {
       renewing.current = null;
     });

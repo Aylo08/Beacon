@@ -3,6 +3,7 @@
 // the CAS form login on the server and returns the API login response. Credentials are
 // used once and never stored or logged.
 import { API_BASE, CAS_LOGIN_URL, CAS_SERVICE, createEdtClient, OFFICIAL_ORIGIN_HEADERS } from '../../lib/edt-core';
+import { decodeEntities } from '../../lib/http';
 
 const UA = 'Mozilla/5.0 (Beacon timetable client)';
 
@@ -14,12 +15,6 @@ function cookieHeader(res: Response): string {
     .getSetCookie()
     .map((c) => c.split(';')[0])
     .join('; ');
-}
-
-function decodeEntities(s: string) {
-  return s.replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
-    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
-    .replace(/&quot;/g, '"').replace(/&amp;/g, '&');
 }
 
 export async function POST(request: Request) {

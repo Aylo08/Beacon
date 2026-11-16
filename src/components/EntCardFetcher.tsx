@@ -11,9 +11,11 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { ENT_CAS_LOGIN_URL } from '../lib/edt';
 import type { EntInfoUser } from '../lib/studentCard';
+import { allowOnly, trustedMessage } from '../lib/webview';
 import { makeStyles, useAppTheme } from '../lib/theme';
 
 const ENT_HOST = 'ent.univ-avignon.fr';
+const HOSTS = ['cas.univ-avignon.fr', ENT_HOST];
 
 export const ENT_FETCH_SCRIPT = `(function () {
   if (location.hostname !== '${ENT_HOST}' || window.__beaconCard) return;
@@ -82,12 +84,8 @@ export function EntCardFetcher({
 
   const onMessage = (e: WebViewMessageEvent) => {
     if (done.current) return;
-    let msg: EntMessage;
-    try {
-      msg = JSON.parse(e.nativeEvent.data);
-    } catch {
-      return;
-    }
+    const msg = trustedMessage<EntMessage>(e, [ENT_HOST]);
+    if (!msg) return;
     if (msg.type === 'card') {
       done.current = true;
       onResult(msg.info, msg.photo);
@@ -111,6 +109,7 @@ export function EntCardFetcher({
           if (!isEnt(e.nativeEvent.url)) setPhase('login');
         }}
         onMessage={onMessage}
+        onShouldStartLoadWithRequest={(req) => allowOnly(req, HOSTS)}
         style={styles.flex}
       />
       {phase === 'fetching' && (

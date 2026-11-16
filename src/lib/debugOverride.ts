@@ -1,7 +1,7 @@
 // Debug hooks for the now bar. This store is inert in release builds: only
 // the debug panel (src/debug/, bundled in development only) ever writes to it.
-import { useSyncExternalStore } from 'react';
 import type { RoomEvent } from './edt';
+import { createStore } from './store';
 
 export type NowOverride = {
   /** Fake "now" at the moment the scenario was picked; time keeps flowing from there. */
@@ -17,22 +17,10 @@ export type NowOverride = {
 
 type DebugState = { panel: boolean; override: NowOverride | null };
 
-let state: DebugState = { panel: false, override: null };
-const listeners = new Set<() => void>();
-const set = (patch: Partial<DebugState>) => {
-  state = { ...state, ...patch };
-  listeners.forEach((l) => l());
-};
+const store = createStore<DebugState>({ panel: false, override: null });
+const set = store.set;
 
 export const setDebugPanel = (panel: boolean) => set({ panel, ...(panel ? {} : { override: null }) });
 export const setNowOverride = (override: NowOverride | null) => set({ override });
 
-export function useDebug(): DebugState {
-  return useSyncExternalStore(
-    (l) => {
-      listeners.add(l);
-      return () => listeners.delete(l);
-    },
-    () => state,
-  );
-}
+export const useDebug = (): DebugState => store.use();

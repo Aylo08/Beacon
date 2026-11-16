@@ -1,10 +1,10 @@
 // "Réglages": theme, bus stops, account. The "Développement" section only
 // exists in development builds (`__DEV__` is false and dropped in release).
 import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View, Platform } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, View, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ThemePicker } from '../components/Buttons';
+import { OutlineButton, ThemePicker } from '../components/Buttons';
 import { BusSettings } from '../components/BusSettings';
 import { Icon } from '../components/Icon';
 import { setDebugPanel, useDebug } from '../lib/debugOverride';
@@ -34,17 +34,15 @@ export default function SettingsScreen() {
       </Section>
 
       <Section title="Compte">
-        <Pressable
+        <OutlineButton
+          icon="logout-box-r-line"
+          label="Se déconnecter"
+          danger
           onPress={async () => {
             await signOut();
             router.dismissAll();
           }}
-          accessibilityRole="button"
-          style={({ pressed }) => [styles.logout, pressed && styles.pressed]}
-        >
-          <Icon name="logout-box-r-line" size={18} color={colors.danger} />
-          <Text style={styles.logoutText}>Se déconnecter</Text>
-        </Pressable>
+        />
       </Section>
 
       {__DEV__ && (
@@ -89,16 +87,4 @@ const useStyles = makeStyles((c) => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   label: { fontSize: 14, fontWeight: '600', color: c.text },
   hint: { fontSize: 12, color: c.textMuted },
-  pressed: { backgroundColor: c.pressed },
-  logout: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: c.danger,
-  },
-  logoutText: { color: c.danger, fontSize: 15, fontWeight: '600' },
 }));

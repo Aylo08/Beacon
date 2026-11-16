@@ -3,7 +3,7 @@
 // the photo as a file in the app's document directory.
 import { fetch } from 'expo/fetch';
 import { File, Paths } from 'expo-file-system';
-import * as SecureStore from 'expo-secure-store';
+import { getJson, removeItem, setJson } from './storage';
 
 /** Raw response of https://ent.univ-avignon.fr/EtiquetteUserUapv/getInfoUser */
 export type EntInfoUser = {
@@ -52,9 +52,8 @@ export function yearLabel(card: StudentCard) {
 
 export async function loadStudentCard(): Promise<StudentCard | null> {
   try {
-    const raw = await SecureStore.getItemAsync(KEY);
-    if (!raw) return null;
-    const card = JSON.parse(raw) as StudentCard;
+    const card = await getJson<StudentCard>(KEY);
+    if (!card) return null;
     // The document directory path can change between app updates on iOS: resolve it again.
     const file = photoFile();
     return { ...card, photoUri: card.photoUri && file.exists ? `${file.uri}?v=${card.fetchedAt}` : null };
@@ -76,10 +75,11 @@ export async function saveStudentCard(info: EntInfoUser, photoDataUrl: string | 
   const file = photoFile();
   if (info.photo_visible !== false && info.photo_path) {
     try {
-      const base64 = photoDataUrl?.split(',')[1];
+      const base64 = photoDataUrl?.startsWith('data:image/') ? photoDataUrl.split(',')[1] : undefined;
       if (base64) {
         await file.write(base64, { encoding: 'base64' });
       } else {
+        if (!info.photo_path.startsWith('https://')) throw new Error('photo URL is not https');
         const res = await fetch(info.photo_path);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         await file.write(await res.bytes());
@@ -101,14 +101,14 @@ export async function saveStudentCard(info: EntInfoUser, photoDataUrl: string | 
     photoUri: hasPhoto ? file.uri : null,
     fetchedAt,
   };
-  await SecureStore.setItemAsync(KEY, JSON.stringify(card));
+  await setJson(KEY, card);
   return { ...card, photoUri: hasPhoto ? `${file.uri}?v=${fetchedAt}` : null };
 }
 
 /** Removes the cached card (on logout). */
 export async function clearStudentCard() {
+  await removeItem(KEY);
   try {
-    await SecureStore.deleteItemAsync(KEY);
     const file = photoFile();
     if (file.exists) file.delete();
   } catch {

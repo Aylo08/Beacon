@@ -7,7 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Barcode } from './Barcode';
 import { Icon } from './Icon';
 
-function useMaxBrightness(active: boolean) {
+/** Screen at full brightness while `active` (restored on close and when the app leaves the foreground). */
+export function useMaxBrightness(active: boolean) {
   useEffect(() => {
     if (!active) return;
     let previous: number | null = null;

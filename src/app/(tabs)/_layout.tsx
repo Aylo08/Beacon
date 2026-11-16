@@ -1,10 +1,10 @@
-// Tabs (Accueil / Mon EDT / Salles), shown only when logged in; otherwise a login prompt.
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+// Tabs (Accueil / Mon EDT / Salles / Payer), shown only when logged in; otherwise a login prompt.
+import { ActivityIndicator, Text, View } from "react-native";
 import { router } from "expo-router";
 import { Tabs } from "expo-router/js-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon } from "../../components/Icon";
-import { ThemeToggle } from "../../components/Buttons";
+import { PrimaryButton, ThemeToggle } from "../../components/Buttons";
 import { PersonalDataProvider } from "../../lib/personalData";
 import { useSession } from "../../lib/sessionContext";
 import { makeStyles, useAppTheme } from "../../lib/theme";
@@ -63,6 +63,15 @@ export default function TabsLayout() {
             ),
           }}
         />
+        <Tabs.Screen
+          name="pay"
+          options={{
+            title: "Payer",
+            tabBarIcon: ({ color, size }) => (
+              <Icon name="wallet-3-line" color={color} size={size} />
+            ),
+          }}
+        />
       </Tabs>
     </PersonalDataProvider>
   );
@@ -87,14 +96,13 @@ function LoggedOut() {
         <Icon name="calendar-2-line" size={48} color={colors.text} />
         <Text style={styles.title}>Beacon</Text>
         {message && <Text style={styles.muted}>{message}</Text>}
-        <Pressable
-          onPress={() => router.push("/login")}
-          accessibilityRole="button"
-          style={styles.primaryButton}
-        >
-          <Icon name="login-box-line" color="#fff" size={18} />
-          <Text style={styles.primaryButtonText}>Se connecter</Text>
-        </Pressable>
+        <View style={styles.button}>
+          <PrimaryButton
+            icon="login-box-line"
+            label="Se connecter"
+            onPress={() => router.push("/login")}
+          />
+        </View>
       </View>
     </View>
   );
@@ -113,15 +121,5 @@ const useStyles = makeStyles((c) => ({
   },
   title: { fontSize: 24, fontWeight: "800", color: c.text },
   muted: { color: c.textMuted, fontSize: 13, textAlign: "center" },
-  primaryButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: c.moved,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  primaryButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  button: { marginTop: 8 },
 }));

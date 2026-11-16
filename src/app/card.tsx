@@ -1,13 +1,12 @@
 // "Carte étudiant": shows the cached digital student card; signs in to the ENT
 // to fetch (or refresh) it when needed.
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, useWindowDimensions, View, Platform } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, useWindowDimensions, View, Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { IconButton } from '../components/Buttons';
+import { IconButton, PrimaryButton } from '../components/Buttons';
 import { EntCardFetcher } from '../components/EntCardFetcher';
 import { FullscreenBarcode } from '../components/FullscreenBarcode';
-import { Icon } from '../components/Icon';
 import { StudentCardView } from '../components/StudentCardView';
 import { barcodeValue, loadStudentCard, saveStudentCard, type StudentCard } from '../lib/studentCard';
 import { makeStyles, useAppTheme } from '../lib/theme';
@@ -91,14 +90,7 @@ export default function CardScreen() {
       {error && <Text style={styles.error}>Impossible de récupérer la carte : {error}</Text>}
       {card ? (
         <>
-          <Pressable
-            onPress={() => setBarcodeOpen(true)}
-            accessibilityRole="button"
-            style={({ pressed }) => [styles.button, pressed && styles.pressed]}
-          >
-            <Icon name="barcode-line" color="#fff" size={18} />
-            <Text style={styles.buttonText}>Afficher le code-barres</Text>
-          </Pressable>
+          <PrimaryButton icon="barcode-line" label="Afficher le code-barres" onPress={() => setBarcodeOpen(true)} />
           <Text style={styles.muted}>
             Mise à jour le {new Date(card.fetchedAt).toLocaleDateString('fr-FR')} · disponible hors connexion
           </Text>
@@ -110,10 +102,7 @@ export default function CardScreen() {
           />
         </>
       ) : (
-        <Pressable onPress={startFetch} accessibilityRole="button" style={styles.button}>
-          <Icon name="login-box-line" color="#fff" size={18} />
-          <Text style={styles.buttonText}>Se connecter à l&apos;ENT</Text>
-        </Pressable>
+        <PrimaryButton icon="login-box-line" label="Se connecter à l’ENT" onPress={startFetch} />
       )}
     </ScrollView>
   );
@@ -125,15 +114,4 @@ const useStyles = makeStyles((c) => ({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.bg },
   muted: { color: c.textMuted, fontSize: 13, textAlign: 'center' },
   error: { color: c.danger, fontSize: 14, textAlign: 'center' },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: c.moved,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  pressed: { opacity: 0.8 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 }));

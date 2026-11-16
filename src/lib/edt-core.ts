@@ -132,17 +132,16 @@ export function createEdtClient(base: string, extraHeaders: Record<string, strin
       return (await readJson(res, 'Favoris')).results;
     },
 
-    /**
-     * Events of the user's default timetable for the whole period (≈ a semester).
-     * Same shape as room events; `favori` holds the timetable's name.
-     * (`autre=true` returned nothing in testing, so only the default is available.)
-     */
     /** Events of one saved timetable (same endpoint the official app uses for its favourites selector). */
     async getFavoriEvents(token: string, favoriId: number): Promise<RoomEvent[]> {
       const res = await fetch(`${base}/events_favori/${favoriId}`, { headers: headers({ token }) });
       return (await readJson(res, `Favori ${favoriId}`)).results;
     },
 
+    /**
+     * Events of the user's default timetable for the whole period (≈ a semester), used when they
+     * have no favoris. `autre=true` returned nothing in testing, so only the default is available.
+     */
     async getPersonalEvents(token: string): Promise<RoomEvent[]> {
       const res = await fetch(`${base}/events_perso?autre=false`, { headers: headers({ token }) });
       return (await readJson(res, 'Personal events')).results;

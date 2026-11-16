@@ -13,6 +13,7 @@ import { CAS_LOGIN_URL, edt, ENT_CAS_LOGIN_URL, extractTicket } from '../lib/edt
 import { saveCredentials, type Credentials } from '../lib/credentials';
 import { useSession } from '../lib/sessionContext';
 import { saveStudentCard } from '../lib/studentCard';
+import { allowOnly, trustedMessage } from '../lib/webview';
 import { makeStyles, useAppTheme } from '../lib/theme';
 
 // On the CAS page, mark the fields for password AutoFill and report what the user submits so it can be saved in the
@@ -34,6 +35,11 @@ const CAPTURE_CREDENTIALS = `(function () {
   }, true);
 })();
 true;`;
+
+const CAS_HOST = 'cas.univ-avignon.fr';
+const ENT_HOST = 'ent.univ-avignon.fr';
+/** Pages this WebView may show (the edt.univ-avignon.fr redirect is intercepted before loading). */
+const HOSTS = [CAS_HOST, ENT_HOST];
 
 /** Give up on the student card after this long: it can be fetched later from its screen. */
 const CARD_TIMEOUT_MS = 20_000;
@@ -82,16 +88,16 @@ export default function Login() {
   };
 
   const onMessage = async (e: WebViewMessageEvent) => {
-    let msg: EntMessage | ({ type: 'credentials' } & Credentials);
-    try {
-      msg = JSON.parse(e.nativeEvent.data);
-    } catch {
+    // Credentials only from the CAS page, card data only from the ENT.
+    const cas = trustedMessage<{ type: 'credentials' } & Credentials>(e, [CAS_HOST]);
+    if (cas?.type === 'credentials') {
+      if (status === 'cas' && typeof cas.username === 'string' && typeof cas.password === 'string') {
+        submitted.current = { username: cas.username, password: cas.password };
+      }
       return;
     }
-    if (msg.type === 'credentials') {
-      if (status === 'cas') submitted.current = { username: msg.username, password: msg.password };
-      return;
-    }
+    const msg = trustedMessage<EntMessage>(e, [ENT_HOST]);
+    if (!msg) return;
     if (status !== 'card') return;
     if (msg.type === 'card') {
       await saveStudentCard(msg.info, msg.photo).catch(() => {});
@@ -110,7 +116,7 @@ export default function Login() {
         onMessage={onMessage}
         onLoadEnd={(e) => {
           // A CAS page that renders here (instead of redirecting) means SSO didn't apply.
-          if (status === 'card' && e.nativeEvent.url.startsWith('https://cas.univ-avignon.fr/')) finish();
+          if (status === 'card' && e.nativeEvent.url.startsWith(`https://${CAS_HOST}/`)) finish();
         }}
         onShouldStartLoadWithRequest={(req) => {
           const ticket = extractTicket(req.url);
@@ -118,7 +124,7 @@ export default function Login() {
             onTicket(ticket);
             return false; // block the load so the official app never consumes the ticket
           }
-          return true;
+          return allowOnly(req, HOSTS);
         }}
         // Fallback for platforms that don't route redirects through the hook above.
         onNavigationStateChange={(nav) => {

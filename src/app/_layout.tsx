@@ -35,6 +35,7 @@ function ThemedStack() {
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Beacon' }} />
         <Stack.Screen name="login" options={{ title: 'Connexion' }} />
+        <Stack.Screen name="izly-login" options={{ title: 'Connexion Izly' }} />
         <Stack.Screen name="card" options={{ title: 'Carte étudiant' }} />
         <Stack.Screen name="settings" options={{ title: 'Réglages' }} />
       </Stack>
