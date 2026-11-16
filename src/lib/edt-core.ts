@@ -3,6 +3,8 @@
 
 export const CAS_SERVICE = 'https://edt.univ-avignon.fr/login';
 export const CAS_LOGIN_URL = `https://cas.univ-avignon.fr/cas/login?service=${encodeURIComponent(CAS_SERVICE)}`;
+/** Same CAS, ENT service: used to fetch the student card (see EntCardFetcher). */
+export const ENT_CAS_LOGIN_URL = `https://cas.univ-avignon.fr/cas/login?service=${encodeURIComponent('https://ent.univ-avignon.fr/uPortal/Login')}`;
 export const API_BASE = 'https://edt-api.univ-avignon.fr/api';
 
 // The official app sends the service without "/login" when exchanging the ticket.

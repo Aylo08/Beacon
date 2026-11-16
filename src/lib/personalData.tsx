@@ -3,6 +3,7 @@
 // favori marked `defaut`); events are loaded per favori and cached.
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { edt, UnauthorizedError, type Favori, type RoomEvent } from './edt';
+import { isHoliday, isTravelTime } from './events';
 import { getPref, setPref } from './prefs';
 import { useSession } from './sessionContext';
 
@@ -11,7 +12,12 @@ type PersonalData = {
   /** The favori currently displayed (null until favoris are loaded, or if the user has none). */
   selected: Favori | null;
   selectFavori: (id: number) => void;
+  /** Classes of the selected timetable ("Temps de déplacement" slots and "Férié" markers removed). */
   events: RoomEvent[] | null;
+  /** The "Temps de déplacement" slots, kept apart for the now bar. */
+  travel: RoomEvent[] | null;
+  /** The "Férié" (public holiday) markers, kept apart for the now bar. */
+  holidays: RoomEvent[] | null;
   error: string | null;
   loading: boolean;
   reload: () => void;
@@ -27,7 +33,7 @@ const NO_FAVORI = -1;
 export const defaultFavori = (favoris: Favori[] | null) => favoris?.find((f) => f.defaut) ?? favoris?.[0];
 
 export function PersonalDataProvider({ children }: { children: ReactNode }) {
-  const { token, signOut } = useSession();
+  const { token, expire } = useSession();
   const [favoris, setFavoris] = useState<Favori[] | null>(null);
   // undefined = preference not read yet (wait for it, to avoid loading the default first).
   const [storedId, setStoredId] = useState<number | null | undefined>(undefined);
@@ -38,10 +44,10 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
   const fail = useCallback(
     async (e: unknown) => {
       if (token && e instanceof UnauthorizedError && !(await edt.isTokenValid(token))) {
-        signOut('Session expirée, reconnectez-vous.');
+        expire(); // renews the token (effects re-run with it) or logs out
       } else setError(String(e));
     },
-    [token, signOut],
+    [token, expire],
   );
 
   useEffect(() => {
@@ -94,10 +100,21 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
     setReloads((n) => n + 1);
   }, []);
 
-  const events = key === null ? null : (cache[key] ?? null);
+  const raw = key === null ? null : (cache[key] ?? null);
+  const { events, travel, holidays } = useMemo(
+    () =>
+      raw
+        ? {
+            events: raw.filter((e) => !isTravelTime(e) && !isHoliday(e)),
+            travel: raw.filter(isTravelTime),
+            holidays: raw.filter(isHoliday),
+          }
+        : { events: null, travel: null, holidays: null },
+    [raw],
+  );
   const value = useMemo(
-    () => ({ favoris, selected, selectFavori, events, error, loading: !events && !error, reload }),
-    [favoris, selected, selectFavori, events, error, reload],
+    () => ({ favoris, selected, selectFavori, events, travel, holidays, error, loading: !events && !error, reload }),
+    [favoris, selected, selectFavori, events, travel, holidays, error, reload],
   );
   return <PersonalDataContext.Provider value={value}>{children}</PersonalDataContext.Provider>;
 }

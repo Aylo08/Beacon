@@ -1,6 +1,12 @@
 // App-wide login state, shared by both tabs and the login screens.
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { casTicket, InvalidCredentialsError } from './casLogin';
+import { clearCredentials, getCredentials } from './credentials';
+import { CAS_SERVICE, edt } from './edt';
 import { clearToken, getToken, setToken } from './session';
+import { clearStudentCard } from './studentCard';
+
+const EXPIRED_MESSAGE = 'Session expirée, reconnectez-vous.';
 
 type Session = {
   /** undefined while loading from storage, null when logged out. */
@@ -9,13 +15,34 @@ type Session = {
   message?: string;
   signIn: (token: string) => Promise<void>;
   signOut: (message?: string) => Promise<void>;
+  /**
+   * Call when the API rejected the token. Signs in again in the background with
+   * the saved credentials (the new token flows to every screen); logs out if
+   * that isn't possible.
+   */
+  expire: () => Promise<void>;
 };
 
 const SessionContext = createContext<Session | null>(null);
 
+/** Headless CAS login + ticket exchange with the saved credentials; null if unavailable. */
+async function renewToken(): Promise<string | null> {
+  const creds = await getCredentials();
+  if (!creds) return null;
+  try {
+    const ticket = await casTicket(CAS_SERVICE, creds.username, creds.password);
+    return (await edt.exchangeTicket(ticket)).token;
+  } catch (e) {
+    if (e instanceof InvalidCredentialsError) await clearCredentials(); // password changed
+    console.warn('[session] silent re-login failed:', e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [token, setTokenState] = useState<string | null | undefined>(undefined);
   const [message, setMessage] = useState<string>();
+  const renewing = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
     getToken().then(setTokenState);
@@ -28,12 +55,27 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async (msg?: string) => {
-    await clearToken();
+    await Promise.all([clearToken(), clearStudentCard(), clearCredentials()]);
     setMessage(msg);
     setTokenState(null);
   }, []);
 
-  const value = useMemo(() => ({ token, message, signIn, signOut }), [token, message, signIn, signOut]);
+  const expire = useCallback(() => {
+    // Several screens can notice the expiry at once: renew only once.
+    renewing.current ??= (async () => {
+      const fresh = await renewToken();
+      if (fresh) await signIn(fresh);
+      else await signOut(EXPIRED_MESSAGE);
+    })().finally(() => {
+      renewing.current = null;
+    });
+    return renewing.current;
+  }, [signIn, signOut]);
+
+  const value = useMemo(
+    () => ({ token, message, signIn, signOut, expire }),
+    [token, message, signIn, signOut, expire],
+  );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 

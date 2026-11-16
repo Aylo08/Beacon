@@ -118,3 +118,12 @@ export function clusterWidths(placed: PlacedEvent[]): number[] {
   if (cluster.length) flush();
   return widths;
 }
+
+/**
+ * "Temps de déplacement": placeholder slots the timetable uses for switching
+ * campus. Not real classes: hidden from the timetable, used by the now bar.
+ */
+export const isTravelTime = (e: RoomEvent) => normalizeSearch(e.title).includes('tempsdedeplacement');
+
+/** "Férié" public-holiday markers (all-day): hidden from the timetable, used by the now bar. */
+export const isHoliday = (e: RoomEvent) => normalizeSearch(e.title).startsWith('ferie');

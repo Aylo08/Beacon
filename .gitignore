@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# private agent notes (reverse-engineering details, personal setup)
+PRIVATE_AGENTS.md

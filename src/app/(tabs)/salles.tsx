@@ -29,11 +29,11 @@ const WIDE_BREAKPOINT = 768;
 
 export default function RoomsScreen() {
   // The tabs layout only renders this screen when logged in.
-  const { token, signOut } = useSession();
-  return token ? <RoomsView token={token} onLogout={signOut} /> : null;
+  const { token, expire } = useSession();
+  return token ? <RoomsView token={token} onExpired={expire} /> : null;
 }
 
-function RoomsView({ token, onLogout }: { token: string; onLogout: (msg?: string) => void }) {
+function RoomsView({ token, onExpired }: { token: string; onExpired: () => void }) {
   const [campuses, setCampuses] = useState<Campus[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [campus, setCampus] = useState<string>(DEFAULT_CAMPUS);
@@ -51,7 +51,8 @@ function RoomsView({ token, onLogout }: { token: string; onLogout: (msg?: string
   const { colors, scheme } = useAppTheme();
   const insets = useSafeAreaInsets();
 
-  const onUnauthorized = useCallback(() => onLogout('Session expirée, reconnectez-vous.'), [onLogout]);
+  // Renews the token in the background (or logs out if that fails).
+  const onUnauthorized = useCallback(() => onExpired(), [onExpired]);
 
   useEffect(() => {
     edt

@@ -19,8 +19,15 @@ export function useRoomEvents(token: string, codes: string[], onUnauthorized: ()
   // One shared token check, so a burst of 401s triggers a single verification.
   const verifying = useRef<Promise<boolean> | null>(null);
 
+  // Rooms that failed with the previous token (e.g. it had expired and was renewed): retry them.
+  const lastToken = useRef(token);
+
   useEffect(() => {
     let cancelled = false;
+    if (lastToken.current !== token) {
+      lastToken.current = token;
+      for (const [code, v] of cache.current) if (v === 'error') cache.current.delete(code);
+    }
     const queue = key.split('\n').filter((c) => c && !cache.current.has(c) && !inflight.current.has(c));
     let next = 0;
 

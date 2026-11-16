@@ -93,3 +93,21 @@ export function monthGrid(month: string): (string | null)[] {
 
 /** Monday of the week containing `day`. */
 export const mondayOf = (day: string) => addDays(day, -((weekday(day) + 6) % 7));
+
+/** Epoch ms of `minutes` past midnight on Paris calendar day `day` (DST-safe). */
+export function parisEpoch(day: string, minutes: number): number {
+  const [y, m, d] = day.split('-').map(Number);
+  const guess = Date.UTC(y, m - 1, d, 0, minutes);
+  const p = parisParts(new Date(guess));
+  const shown = p.minutes + (p.day === day ? 0 : p.day > day ? 1440 : -1440);
+  return guess - (shown - minutes) * 60_000;
+}
+
+const dateFormatter = new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long' });
+
+/** "Lundi 16 novembre" */
+export function dateLabel(day: string): string {
+  const [y, m, d] = day.split('-').map(Number);
+  const label = dateFormatter.format(new Date(Date.UTC(y, m - 1, d)));
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
