@@ -90,3 +90,6 @@ export function monthGrid(month: string): (string | null)[] {
   while (cells.length % 7) cells.push(null);
   return cells;
 }
+
+/** Monday of the week containing `day`. */
+export const mondayOf = (day: string) => addDays(day, -((weekday(day) + 6) % 7));

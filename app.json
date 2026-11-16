@@ -39,6 +39,16 @@
       "expo-secure-store",
       "expo-status-bar"
     ],
-    "scheme": "beacon"
+    "scheme": "beacon",
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "3c299c60-7d09-42b9-8cb0-362a0cfc11f0"
+      }
+    }
   }
 }

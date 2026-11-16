@@ -88,3 +88,33 @@ export function normalizeSearch(s: string): string {
   }
   return out.replace(/\s+/g, '');
 }
+
+/** Value of the first matching "Key : value" line of an event title. */
+export function titleField(title: string, ...keys: string[]): string | undefined {
+  return parseTitle(title).find((f) => keys.includes(f.key))?.value;
+}
+
+/**
+ * Splits placed events into overlap clusters and returns, for each event, how
+ * many side-by-side columns its cluster needs (so lone events use full width).
+ */
+export function clusterWidths(placed: PlacedEvent[]): number[] {
+  const order = placed.map((p, i) => i).sort((a, b) => placed[a].startMin - placed[b].startMin);
+  const widths = new Array<number>(placed.length).fill(1);
+  let cluster: number[] = [];
+  let clusterEnd = -1;
+  const flush = () => {
+    const n = Math.max(1, ...cluster.map((i) => placed[i].lane + 1));
+    for (const i of cluster) widths[i] = n;
+  };
+  for (const i of order) {
+    if (cluster.length && placed[i].startMin >= clusterEnd) {
+      flush();
+      cluster = [];
+    }
+    cluster.push(i);
+    clusterEnd = Math.max(clusterEnd, placed[i].endMin);
+  }
+  if (cluster.length) flush();
+  return widths;
+}

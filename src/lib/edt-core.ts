@@ -27,6 +27,15 @@ export type LoginResponse = {
 export type Salle = { name: string; code: string; searchString: string };
 export type Campus = { letter: string; names: Salle[] };
 
+/** A saved timetable ("favori"). `defaut` marks the one events_perso returns. */
+export type Favori = {
+  id: number;
+  name: string;
+  defaut: boolean;
+  saPromo: boolean;
+  createdAt: { date: string; timezone: string };
+};
+
 export type RoomEvent = {
   start: string; // ISO 8601 with offset
   end: string;
@@ -38,7 +47,11 @@ export type RoomEvent = {
   favori: string;
 };
 
-export class UnauthorizedError extends Error {}
+export class UnauthorizedError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+  }
+}
 
 /** Pull the CAS service ticket out of a redirect URL, if present. */
 export function extractTicket(url: string): string | null {
@@ -49,7 +62,7 @@ export function extractTicket(url: string): string | null {
 
 async function readJson(res: Response, what: string) {
   const text = await res.text();
-  if (res.status === 401 || res.status === 403) throw new UnauthorizedError(`${what}: unauthorized`);
+  if (res.status === 401 || res.status === 403) throw new UnauthorizedError(`${what}: unauthorized (${res.status})`, res.status);
   if (!res.ok) {
     // Symfony returns an HTML error page; its <title> is enough to diagnose.
     const detail = text.match(/<title>([^<]*)<\/title>/i)?.[1] ?? text.slice(0, 300);
@@ -84,9 +97,19 @@ export function createEdtClient(base: string, extraHeaders: Record<string, strin
       return data;
     },
 
-    async getFavoris(token: string): Promise<unknown> {
-      const res = await fetch(`${base}/users/favoris`, { headers: headers({ token }) });
-      return readJson(res, 'Favoris');
+    /**
+     * Whether the token is still accepted. A 401/403 on one data endpoint
+     * (rate limiting, a restricted room…) doesn't mean the session is over, so
+     * confirm with a cheap authenticated call before logging the user out.
+     * Network/other errors count as "still valid" to avoid spurious logouts.
+     */
+    async isTokenValid(token: string): Promise<boolean> {
+      try {
+        const res = await fetch(`${base}/users/favoris`, { headers: headers({ token }) });
+        return res.status !== 401 && res.status !== 403;
+      } catch {
+        return true;
+      }
     },
 
     /** All rooms, grouped by campus. */
@@ -99,6 +122,28 @@ export function createEdtClient(base: string, extraHeaders: Record<string, strin
     async getRoomEvents(token: string, code: string): Promise<RoomEvent[]> {
       const res = await fetch(`${base}/events_salle/${encodeURIComponent(code)}`, { headers: headers({ token }) });
       return (await readJson(res, `Events ${code}`)).results;
+    },
+
+    /** The user's saved timetables. */
+    async getFavoris(token: string): Promise<Favori[]> {
+      const res = await fetch(`${base}/users/favoris`, { headers: headers({ token }) });
+      return (await readJson(res, 'Favoris')).results;
+    },
+
+    /**
+     * Events of the user's default timetable for the whole period (≈ a semester).
+     * Same shape as room events; `favori` holds the timetable's name.
+     * (`autre=true` returned nothing in testing, so only the default is available.)
+     */
+    /** Events of one saved timetable (same endpoint the official app uses for its favourites selector). */
+    async getFavoriEvents(token: string, favoriId: number): Promise<RoomEvent[]> {
+      const res = await fetch(`${base}/events_favori/${favoriId}`, { headers: headers({ token }) });
+      return (await readJson(res, `Favori ${favoriId}`)).results;
+    },
+
+    async getPersonalEvents(token: string): Promise<RoomEvent[]> {
+      const res = await fetch(`${base}/events_perso?autre=false`, { headers: headers({ token }) });
+      return (await readJson(res, 'Personal events')).results;
     },
   };
 }

@@ -5,11 +5,12 @@ import { ActivityIndicator, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { router } from 'expo-router';
 import { CAS_LOGIN_URL, edt, extractTicket } from '../lib/edt';
-import { setToken } from '../lib/session';
+import { useSession } from '../lib/sessionContext';
 import { makeStyles } from '../lib/theme';
 
 export default function Login() {
   const handled = useRef(false);
+  const { signIn } = useSession();
   const styles = useStyles();
   const [status, setStatus] = useState<'cas' | 'exchanging' | { error: string }>('cas');
 
@@ -19,8 +20,9 @@ export default function Login() {
     setStatus('exchanging');
     try {
       const { token } = await edt.exchangeTicket(ticket);
-      await setToken(token);
-      router.back();
+      await signIn(token);
+      if (router.canGoBack()) router.back();
+      else router.replace('/');
     } catch (e) {
       setStatus({ error: String(e) });
     }

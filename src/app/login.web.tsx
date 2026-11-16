@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { ActivityIndicator, Button, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
-import { setToken } from '../lib/session';
+import { useSession } from '../lib/sessionContext';
 import { makeStyles, useAppTheme } from '../lib/theme';
 
 export default function Login() {
@@ -13,6 +13,7 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const styles = useStyles();
   const { colors } = useAppTheme();
+  const { signIn } = useSession();
 
   const submit = async () => {
     setBusy(true);
@@ -25,7 +26,7 @@ export default function Login() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
-      await setToken(data.token); // the server route already exchanged the ticket
+      await signIn(data.token); // the server route already exchanged the ticket
       if (router.canGoBack()) router.back();
       else router.replace('/');
     } catch (e) {

@@ -16,6 +16,8 @@ export function useRoomEvents(token: string, codes: string[], onUnauthorized: ()
   const [version, bump] = useReducer((x: number) => x + 1, 0);
   const [reloads, reload] = useReducer((x: number) => x + 1, 0);
   const key = codes.join('\n');
+  // One shared token check, so a burst of 401s triggers a single verification.
+  const verifying = useRef<Promise<boolean> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -29,12 +31,18 @@ export function useRoomEvents(token: string, codes: string[], onUnauthorized: ()
         try {
           cache.current.set(code, await edt.getRoomEvents(token, code));
         } catch (e) {
-          if (e instanceof UnauthorizedError) {
-            cancelled = true;
-            onUnauthorized();
-            return;
-          }
           cache.current.set(code, 'error');
+          if (e instanceof UnauthorizedError) {
+            console.warn(`[rooms] ${e.message}; checking whether the session is still valid`);
+            verifying.current ??= edt.isTokenValid(token).finally(() => {
+              verifying.current = null;
+            });
+            if (!(await verifying.current)) {
+              cancelled = true;
+              onUnauthorized();
+              return;
+            }
+          }
         } finally {
           inflight.current.delete(code);
         }
