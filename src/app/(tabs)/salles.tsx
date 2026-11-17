@@ -1,4 +1,5 @@
 // "Salles": room availability timeline (one row per room, 30-minute columns).
+// Pinned (starred) rooms come first in their campus.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -17,6 +18,7 @@ import { RoomTimeline } from '../../components/RoomTimeline';
 import { DateBar } from '../../components/DateBar';
 import { edt, UnauthorizedError, type Campus } from '../../lib/edt';
 import { normalizeSearch } from '../../lib/events';
+import { pinnedFirst, togglePinnedRoom, usePinnedRooms } from '../../lib/pinnedRooms';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSession } from '../../lib/sessionContext';
 import { makeStyles, useAppTheme } from '../../lib/theme';
@@ -68,14 +70,16 @@ function RoomsView({ token, onExpired }: { token: string; onExpired: () => void 
       });
   }, [token, onUnauthorized]);
 
+  const pinned = usePinnedRooms();
+  const pinnedCodes = useMemo(() => new Set(pinned.map((p) => p.code)), [pinned]);
   const rooms = useMemo(() => {
     if (!campuses) return [];
     const q = normalizeSearch(query);
     return campuses
       .filter((c) => campus === ALL || c.letter === campus)
-      .flatMap((c) => c.names)
+      .flatMap((c) => pinnedFirst(c.names, pinned))
       .filter((r) => !q || normalizeSearch(r.searchString).includes(q));
-  }, [campuses, campus, query]);
+  }, [campuses, campus, query, pinned]);
 
   const codes = useMemo(() => rooms.map((r) => r.code), [rooms]);
   const { get, version, refresh } = useRoomEvents(token, codes, onUnauthorized);
@@ -161,6 +165,8 @@ function RoomsView({ token, onExpired }: { token: string; onExpired: () => void 
             cursor={cursor}
             onCursorChange={setCursor}
             recenter={recenter}
+            pinned={pinnedCodes}
+            onTogglePin={togglePinnedRoom}
           />
         )}
       </View>

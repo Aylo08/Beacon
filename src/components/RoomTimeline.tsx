@@ -7,7 +7,8 @@
 //
 // Time cursor: shows "now" (red) until moved (blue). It is moved by dragging
 // in the hours row, tapping the grid, or (web) clicking, with a hover preview.
-// Room name cells are green/red depending on availability at the cursor.
+// Room name cells are green/red depending on availability at the cursor; their
+// star pins / unpins the room (pinned rooms are listed first by the screen).
 import { useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
   ActivityIndicator,
@@ -27,6 +28,7 @@ import { formatMinutes, parisParts, todayKey } from '../lib/time';
 import { eventColors, makeStyles, useAppTheme } from '../lib/theme';
 import type { RoomEventsState } from '../lib/useRoomEvents';
 import { t } from '../lib/i18n';
+import { Icon } from './Icon';
 
 export const DAY_START = 8 * 60;
 export const DAY_END = 20 * 60;
@@ -49,6 +51,9 @@ type Props = {
   onCursorChange: (minutes: number) => void;
   /** Change this value to scroll the cursor back to the centre (animated). */
   recenter: number;
+  /** Codes of the pinned rooms. */
+  pinned: Set<string>;
+  onTogglePin: (room: Salle) => void;
 };
 
 type RowLayout = { room: Salle; state: RoomEventsState; placed: PlacedEvent[]; height: number };
@@ -77,7 +82,7 @@ const eventX = (e: { nativeEvent: object }) => {
   return n.clientX ?? n.pageX ?? 0;
 };
 
-export function RoomTimeline({ rooms, day, getEvents, version, cursor, onCursorChange, recenter }: Props) {
+export function RoomTimeline({ rooms, day, getEvents, version, cursor, onCursorChange, recenter, pinned, onTogglePin }: Props) {
   const { width } = useWindowDimensions();
   const nameW = width < 600 ? 112 : 170;
   const slotW = Math.max(MIN_SLOT_W, Math.floor((width - nameW - 2) / SLOTS));
@@ -239,7 +244,21 @@ export function RoomTimeline({ rooms, day, getEvents, version, cursor, onCursorC
                 ]}
                 accessibilityLabel={`${room.name}, ${status === 'busy' ? t('rooms.busy') : status === 'free' ? t('rooms.free') : t('common.loading')}`}
               >
-                <Text style={styles.roomName} numberOfLines={2} maxFontSizeMultiplier={1.2}>
+                <Pressable
+                  onPress={() => onTogglePin(room)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: pinned.has(room.code) }}
+                  accessibilityLabel={t(pinned.has(room.code) ? 'rooms.unpin' : 'rooms.pin', { room: room.name })}
+                  style={styles.pin}
+                >
+                  <Icon
+                    name={pinned.has(room.code) ? 'star-fill' : 'star-line'}
+                    size={14}
+                    color={pinned.has(room.code) ? colors.star : colors.textFaint}
+                  />
+                </Pressable>
+                <Text style={[styles.roomName, styles.roomNamePinnable]} numberOfLines={2} maxFontSizeMultiplier={1.2}>
                   {room.name}
                 </Text>
                 <Text style={styles.roomCode} numberOfLines={1} maxFontSizeMultiplier={1.2}>
@@ -343,6 +362,8 @@ const useStyles = makeStyles((c) => ({
   busy: { backgroundColor: c.busy },
   rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderColor: c.border },
   roomName: { fontSize: 12, fontWeight: '600', color: c.text },
+  roomNamePinnable: { paddingRight: 14 },
+  pin: { position: 'absolute', top: 4, right: 4, zIndex: 1 },
   roomCode: { fontSize: 10, color: c.textMuted },
   gridLine: { position: 'absolute', top: 0, bottom: 0, width: StyleSheet.hairlineWidth, backgroundColor: c.gridLine },
   hourLine: { backgroundColor: c.hourLine },

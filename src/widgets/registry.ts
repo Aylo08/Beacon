@@ -4,6 +4,7 @@ import type { ComponentType } from 'react';
 import type { IconName } from '../components/Icon';
 import { BusWidget } from './BusWidget';
 import { RestaurantsWidget } from './RestaurantsWidget';
+import { RoomsWidget } from './RoomsWidget';
 import { TodayWidget } from './TodayWidget';
 import { t } from '../lib/i18n';
 
@@ -36,6 +37,13 @@ export const WIDGETS: WidgetDef[] = [
     description: () => t('widget.bus.description'),
     icon: 'bus-line',
     Component: BusWidget,
+  },
+  {
+    id: 'rooms',
+    title: () => t('widget.rooms.title'),
+    description: () => t('widget.rooms.description'),
+    icon: 'star-line',
+    Component: RoomsWidget,
   },
 ];
 

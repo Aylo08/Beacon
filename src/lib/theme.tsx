@@ -30,8 +30,13 @@ const light = {
   hourLine: '#d1d5db',
   free: '#dcfce7',
   busy: '#fee2e2',
+  /** Text on free / busy backgrounds. */
+  freeText: '#166534',
+  busyText: '#991b1b',
   live: '#ef4444',
   moved: '#2563eb',
+  /** Pinned (favourite) star. */
+  star: '#f59e0b',
   preview: 'rgba(37, 99, 235, 0.35)',
   backdrop: 'rgba(17, 24, 39, 0.35)',
   /** Home "now bar" background, and text on it. */
@@ -68,8 +73,11 @@ const dark: Palette = {
   hourLine: '#2a2a2a',
   free: '#14532d',
   busy: '#7f1d1d',
+  freeText: '#bbf7d0',
+  busyText: '#fecaca',
   live: '#ef4444',
   moved: '#3b82f6',
+  star: '#fbbf24',
   preview: 'rgba(96, 165, 250, 0.4)',
   backdrop: 'rgba(0, 0, 0, 0.7)',
   accent: '#1d4ed8',
