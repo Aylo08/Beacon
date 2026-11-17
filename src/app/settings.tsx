@@ -1,26 +1,19 @@
-// "Réglages": theme and language, bus stops, account. The "Développement" section only
+// "Réglages": theme and language, bus stops, Izly account, university account. The "Développement" section only
 // exists in development builds (`__DEV__` is false and dropped in release).
 import { useState, type ReactNode } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { OutlineButton, Segmented, ThemePicker } from '../components/Buttons';
+import { OutlineButton, PrimaryButton, ThemePicker } from '../components/Buttons';
 import { BusSettings } from '../components/BusSettings';
 import { Icon } from '../components/Icon';
+import { LanguagePicker } from '../components/LanguagePicker';
 import { OptionSheet } from '../components/OptionSheet';
 import { setDebugPanel, useDebug } from '../lib/debugOverride';
 import { useSession } from '../lib/sessionContext';
-import { makeStyles, useAppTheme } from '../lib/theme';
-import {
-  CLASSICAL_LANGS,
-  LANGUAGE_NAMES,
-  setForcedLang,
-  setUserLang,
-  t,
-  useForcedLang,
-  useUserLang,
-  type Lang,
-} from '../lib/i18n';
+import { BRAND, makeStyles, useAppTheme } from '../lib/theme';
+import { LANGUAGE_NAMES, setForcedLang, t, useForcedLang, type Lang } from '../lib/i18n';
+import { clearIzly, useIzlyLinked } from '../lib/izly';
 
 export default function SettingsScreen() {
   const styles = useStyles();
@@ -29,7 +22,7 @@ export default function SettingsScreen() {
   const { signOut } = useSession();
   const { panel } = useDebug();
   const forcedLang = useForcedLang();
-  const userLang = useUserLang();
+  const izlyLinked = useIzlyLinked();
   const [debugLangOpen, setDebugLangOpen] = useState(false);
 
   return (
@@ -42,19 +35,28 @@ export default function SettingsScreen() {
       <Section title={t('settings.appearance')}>
         <ThemePicker />
         <Text style={styles.label}>{t('settings.language')}</Text>
-        <Segmented
-          options={[
-            { value: 'system', label: t('settings.languageSystem') },
-            // Each language under its own name, whatever the current one.
-            ...CLASSICAL_LANGS.map((l) => ({ value: l, label: LANGUAGE_NAMES[l] })),
-          ]}
-          value={userLang ?? 'system'}
-          onChange={(v) => setUserLang(v === 'system' ? null : v)}
-        />
+        <LanguagePicker />
       </Section>
 
       <Section>
         <BusSettings />
+      </Section>
+
+      <Section title={t('settings.izly')}>
+        <View style={styles.row}>
+          <Icon name="wallet-3-line" size={18} color={BRAND.izly} />
+          <Text style={[styles.label, styles.flex1]}>{izlyLinked ? t('settings.izlyLinked') : t('settings.izlyNotLinked')}</Text>
+        </View>
+        {izlyLinked ? (
+          <OutlineButton icon="logout-box-r-line" label={t('pay.signOut')} danger onPress={() => clearIzly()} />
+        ) : (
+          <PrimaryButton
+            icon="login-box-line"
+            label={t('pay.signIn')}
+            color={BRAND.izly}
+            onPress={() => router.push('/izly-login')}
+          />
+        )}
       </Section>
 
       <Section title={t('settings.account')}>

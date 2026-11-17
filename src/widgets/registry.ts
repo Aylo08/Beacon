@@ -47,6 +47,7 @@ export const WIDGETS: WidgetDef[] = [
   },
 ];
 
-export const DEFAULT_WIDGETS = ['today'];
+/** Shown on first launch (the others can be added from the home screen). */
+export const DEFAULT_WIDGETS = ['today', 'bus'];
 
 export const widgetById = (id: string) => WIDGETS.find((w) => w.id === id);

@@ -10,10 +10,12 @@
 // cookies live in the Keychain; the cookies are also kept in memory so requests
 // don't hit the Keychain each time. Izly blocks the account after a few wrong
 // codes, so credentials it rejects are deleted at once and never retried.
+import { useEffect } from 'react';
 import { fetch } from 'expo/fetch';
 import type { Credentials } from '../credentials';
 import { absorbCookies, cookieHeader, inputValue, sameJar, type CookieJar } from '../http';
 import { getJson, removeItem, setJson } from '../storage';
+import { createStore } from '../store';
 import { errorText } from './parse';
 import { t } from '../i18n';
 
@@ -38,6 +40,22 @@ export async function getIzlyCredentials(): Promise<Credentials | null> {
   return c?.username && c.password ? c : null;
 }
 
+// Whether an Izly account is connected (drives the "Payer" tab and the settings).
+// undefined until read from the Keychain.
+const linkedStore = createStore<{ linked: boolean | undefined }>({ linked: undefined });
+let linkedLoaded: Promise<void> | null = null;
+
+export function useIzlyLinked(): boolean | undefined {
+  useEffect(() => {
+    linkedLoaded ??= getIzlyCredentials()
+      .then((c) => {
+        if (linkedStore.get().linked === undefined) linkedStore.set({ linked: !!c });
+      })
+      .catch(() => linkedStore.set({ linked: false }));
+  }, []);
+  return linkedStore.use().linked;
+}
+
 // ---- Cookie jar (memory + Keychain) -------------------------------------------
 
 /** undefined = not read from the Keychain yet. */
@@ -57,6 +75,7 @@ async function saveJar(jar: CookieJar) {
 /** Forgets the session and credentials (other Izly data: see clearIzly). */
 export async function clearIzlySession() {
   jarCache = null;
+  linkedStore.set({ linked: false });
   await Promise.all([removeItem(CREDS_KEY), removeItem(COOKIE_KEY)]);
 }
 
@@ -96,6 +115,7 @@ async function login({ username, password }: Credentials): Promise<CookieJar> {
 export async function izlySignIn(creds: Credentials) {
   const jar = await login(creds);
   await Promise.all([setJson(CREDS_KEY, creds), saveJar(jar)]);
+  linkedStore.set({ linked: true });
 }
 
 let relogin: Promise<CookieJar> | null = null;

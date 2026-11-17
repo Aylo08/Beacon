@@ -27,6 +27,7 @@ export {
   IzlyInvalidCredentialsError,
   IzlyNotSignedInError,
   izlySignIn,
+  useIzlyLinked,
 } from './session';
 
 const BALANCE_KEY = 'izly_balance';

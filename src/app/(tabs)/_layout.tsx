@@ -1,10 +1,12 @@
-// Tabs (Accueil / Mon EDT / Salles / Payer), shown only when logged in; otherwise a login prompt.
-import { ActivityIndicator, Text, View } from "react-native";
-import { router } from "expo-router";
+// Tabs (Accueil / Mon EDT / Salles / Payer), shown once logged in and onboarded;
+// otherwise the onboarding (components/Onboarding). "Payer" only exists with an
+// Izly account connected.
+import { ActivityIndicator, View } from "react-native";
 import { Tabs } from "expo-router/js-tabs";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon } from "../../components/Icon";
-import { PrimaryButton, ThemeToggle } from "../../components/Buttons";
+import { SetupSteps, WelcomeStep } from "../../components/Onboarding";
+import { useIzlyLinked } from "../../lib/izly";
+import { useOnboardingDone } from "../../lib/onboarding";
 import { PersonalDataProvider } from "../../lib/personalData";
 import { useSession } from "../../lib/sessionContext";
 import { makeStyles, useAppTheme } from "../../lib/theme";
@@ -15,14 +17,18 @@ export default function TabsLayout() {
   const { colors } = useAppTheme();
   const styles = useStyles();
 
-  if (token === undefined) {
+  const onboarded = useOnboardingDone();
+  const izlyLinked = useIzlyLinked();
+
+  if (token === undefined || onboarded === undefined) {
     return (
       <View style={styles.center}>
         <ActivityIndicator color={colors.textMuted} />
       </View>
     );
   }
-  if (!token) return <LoggedOut />;
+  if (!token) return <WelcomeStep />;
+  if (!onboarded) return <SetupSteps />;
 
   return (
     <PersonalDataProvider>
@@ -67,6 +73,8 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="pay"
           options={{
+            // Hidden (no tab button) without an Izly account: connect one in the settings.
+            href: izlyLinked ? undefined : null,
             title: t("tabs.pay"),
             tabBarIcon: ({ color, size }) => (
               <Icon name="wallet-3-line" color={color} size={size} />
@@ -78,49 +86,6 @@ export default function TabsLayout() {
   );
 }
 
-function LoggedOut() {
-  const { message } = useSession();
-  const insets = useSafeAreaInsets();
-  const styles = useStyles();
-  const { colors } = useAppTheme();
-  return (
-    <View style={styles.flex}>
-      <View
-        style={[
-          styles.top,
-          { paddingTop: insets.top + 8, paddingRight: insets.right + 12 },
-        ]}
-      >
-        <ThemeToggle />
-      </View>
-      <View style={styles.center}>
-        <Icon name="calendar-2-line" size={48} color={colors.text} />
-        <Text style={styles.title}>Beacon</Text>
-        {message && <Text style={styles.muted}>{message}</Text>}
-        <View style={styles.button}>
-          <PrimaryButton
-            icon="login-box-line"
-            label={t("common.signIn")}
-            onPress={() => router.push("/login")}
-          />
-        </View>
-      </View>
-    </View>
-  );
-}
-
 const useStyles = makeStyles((c) => ({
-  flex: { flex: 1, backgroundColor: c.bg },
-  top: { flexDirection: "row", justifyContent: "flex-end" },
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-    padding: 16,
-    backgroundColor: c.bg,
-  },
-  title: { fontSize: 24, fontWeight: "800", color: c.text },
-  muted: { color: c.textMuted, fontSize: 13, textAlign: "center" },
-  button: { marginTop: 8 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg },
 }));
