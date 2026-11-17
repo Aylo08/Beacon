@@ -3,23 +3,24 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { formatEuros, type IzlyBalance } from '../../lib/izly';
 import { BRAND, makeStyles } from '../../lib/theme';
 import { Icon } from '../Icon';
+import { t } from '../../lib/i18n';
 
 export function BalanceCard({ balance, onPay }: { balance: IzlyBalance | null; onPay: () => void }) {
   const styles = useStyles();
   return (
     <View style={styles.card}>
-      <Text style={styles.label}>SOLDE IZLY</Text>
+      <Text style={styles.label}>{t('pay.balance')}</Text>
       {balance ? (
-        <Text style={styles.amount} accessibilityLabel={`Solde ${formatEuros(balance.amount)}`}>
+        <Text style={styles.amount} accessibilityLabel={t('pay.balanceA11y', { amount: formatEuros(balance.amount) })}>
           {formatEuros(balance.amount)}
         </Text>
       ) : (
         <ActivityIndicator color="#fff" style={styles.spinner} />
       )}
-      {balance?.asOf && <Text style={styles.date}>au {balance.asOf}</Text>}
+      {balance?.asOf && <Text style={styles.date}>{t('pay.asOf', { date: balance.asOf })}</Text>}
       <Pressable onPress={onPay} accessibilityRole="button" style={({ pressed }) => [styles.pay, pressed && styles.dim]}>
         <Icon name="qr-code-line" size={20} color={BRAND.izly} />
-        <Text style={styles.payText}>Payer par QR code</Text>
+        <Text style={styles.payText}>{t('pay.payQr')}</Text>
       </Pressable>
     </View>
   );

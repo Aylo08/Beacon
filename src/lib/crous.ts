@@ -3,6 +3,7 @@
 import { edt, type Campus } from './edt';
 import { normalizeSearch } from './events';
 import { parisParts, weekday } from './time';
+import { t } from './i18n';
 
 /** Agroparc restaurant: Agrosciences, CERI, IUT (and unknown campuses). */
 export const RESTO_AGROPARC = '13-31-9';
@@ -44,7 +45,7 @@ export async function fetchAttendance(restoId: string): Promise<Attendance> {
   if (!res.ok) throw new Error(`Crous: HTTP ${res.status}`);
   const data = await res.json();
   const lieu = data?.lieux?.[0];
-  if (!lieu) throw new Error('Crous: aucune donnée');
+  if (!lieu) throw new Error(t('err.crousNoData'));
   return {
     name: String(lieu.libelle ?? 'Restaurant'),
     count: Number(lieu.repas) || 0,

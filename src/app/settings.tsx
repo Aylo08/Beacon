@@ -1,15 +1,26 @@
-// "Réglages": theme, bus stops, account. The "Développement" section only
+// "Réglages": theme and language, bus stops, account. The "Développement" section only
 // exists in development builds (`__DEV__` is false and dropped in release).
-import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, View, Platform } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { OutlineButton, ThemePicker } from '../components/Buttons';
+import { OutlineButton, Segmented, ThemePicker } from '../components/Buttons';
 import { BusSettings } from '../components/BusSettings';
 import { Icon } from '../components/Icon';
+import { OptionSheet } from '../components/OptionSheet';
 import { setDebugPanel, useDebug } from '../lib/debugOverride';
 import { useSession } from '../lib/sessionContext';
 import { makeStyles, useAppTheme } from '../lib/theme';
+import {
+  CLASSICAL_LANGS,
+  LANGUAGE_NAMES,
+  setForcedLang,
+  setUserLang,
+  t,
+  useForcedLang,
+  useUserLang,
+  type Lang,
+} from '../lib/i18n';
 
 export default function SettingsScreen() {
   const styles = useStyles();
@@ -17,6 +28,9 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { signOut } = useSession();
   const { panel } = useDebug();
+  const forcedLang = useForcedLang();
+  const userLang = useUserLang();
+  const [debugLangOpen, setDebugLangOpen] = useState(false);
 
   return (
     <ScrollView
@@ -25,18 +39,28 @@ export default function SettingsScreen() {
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={[styles.content, { paddingBottom: (Platform.OS === 'ios' ? 0 : insets.bottom) + 24 }]}
     >
-      <Section title="Apparence">
+      <Section title={t('settings.appearance')}>
         <ThemePicker />
+        <Text style={styles.label}>{t('settings.language')}</Text>
+        <Segmented
+          options={[
+            { value: 'system', label: t('settings.languageSystem') },
+            // Each language under its own name, whatever the current one.
+            ...CLASSICAL_LANGS.map((l) => ({ value: l, label: LANGUAGE_NAMES[l] })),
+          ]}
+          value={userLang ?? 'system'}
+          onChange={(v) => setUserLang(v === 'system' ? null : v)}
+        />
       </Section>
 
       <Section>
         <BusSettings />
       </Section>
 
-      <Section title="Compte">
+      <Section title={t('settings.account')}>
         <OutlineButton
           icon="logout-box-r-line"
-          label="Se déconnecter"
+          label={t('settings.signOut')}
           danger
           onPress={async () => {
             await signOut();
@@ -46,15 +70,44 @@ export default function SettingsScreen() {
       </Section>
 
       {__DEV__ && (
-        <Section title="Développement">
+        <Section title={t('settings.dev')}>
           <View style={styles.row}>
             <Icon name="bug-line" size={18} color={colors.primary} />
             <View style={styles.flex1}>
-              <Text style={styles.label}>Panneau de debug</Text>
-              <Text style={styles.hint}>Affiche en haut de l’accueil des scénarios pour forcer la barre « maintenant ».</Text>
+              <Text style={styles.label}>{t('settings.debugPanel')}</Text>
+              <Text style={styles.hint}>{t('settings.debugHint')}</Text>
             </View>
             <Switch value={panel} onValueChange={setDebugPanel} />
           </View>
+          <Pressable
+            onPress={() => setDebugLangOpen(true)}
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+          >
+            <Icon name="global-line" size={18} color={colors.primary} />
+            <View style={styles.flex1}>
+              <Text style={styles.label}>{t('settings.language')}</Text>
+              <Text style={styles.hint}>{t('settings.debugLangHint')}</Text>
+            </View>
+            <Text style={styles.value} numberOfLines={1}>
+              {forcedLang ? LANGUAGE_NAMES[forcedLang] : t('settings.languageSystem')}
+            </Text>
+            <Icon name="arrow-right-s-line" size={20} color={colors.textMuted} />
+          </Pressable>
+          <OptionSheet
+            visible={debugLangOpen}
+            title={t('settings.language')}
+            options={[
+              { value: 'system', label: t('settings.languageSystem') },
+              ...(Object.keys(LANGUAGE_NAMES) as Lang[]).map((l) => ({ value: l, label: LANGUAGE_NAMES[l], detail: l })),
+            ]}
+            value={forcedLang ?? 'system'}
+            onSelect={(v) => {
+              setForcedLang(v === 'system' ? null : (v as Lang));
+              setDebugLangOpen(false);
+            }}
+            onClose={() => setDebugLangOpen(false)}
+          />
         </Section>
       )}
     </ScrollView>
@@ -87,4 +140,6 @@ const useStyles = makeStyles((c) => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   label: { fontSize: 14, fontWeight: '600', color: c.text },
   hint: { fontSize: 12, color: c.textMuted },
+  value: { fontSize: 14, color: c.textSecondary, maxWidth: 120 },
+  pressed: { opacity: 0.6 },
 }));

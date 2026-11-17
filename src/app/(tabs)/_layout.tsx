@@ -8,6 +8,7 @@ import { PrimaryButton, ThemeToggle } from "../../components/Buttons";
 import { PersonalDataProvider } from "../../lib/personalData";
 import { useSession } from "../../lib/sessionContext";
 import { makeStyles, useAppTheme } from "../../lib/theme";
+import { t } from '../../lib/i18n';
 
 export default function TabsLayout() {
   const { token } = useSession();
@@ -39,7 +40,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: "Accueil",
+            title: t("tabs.home"),
             tabBarIcon: ({ color, size }) => (
               <Icon name="home-5-line" color={color} size={size} />
             ),
@@ -48,7 +49,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="perso"
           options={{
-            title: "Mon EDT",
+            title: t("tabs.timetable"),
             tabBarIcon: ({ color, size }) => (
               <Icon name="calendar-2-line" color={color} size={size} />
             ),
@@ -57,7 +58,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="salles"
           options={{
-            title: "Salles",
+            title: t("tabs.rooms"),
             tabBarIcon: ({ color, size }) => (
               <Icon name="building-2-line" color={color} size={size} />
             ),
@@ -66,7 +67,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="pay"
           options={{
-            title: "Payer",
+            title: t("tabs.pay"),
             tabBarIcon: ({ color, size }) => (
               <Icon name="wallet-3-line" color={color} size={size} />
             ),
@@ -99,7 +100,7 @@ function LoggedOut() {
         <View style={styles.button}>
           <PrimaryButton
             icon="login-box-line"
-            label="Se connecter"
+            label={t("common.signIn")}
             onPress={() => router.push("/login")}
           />
         </View>

@@ -6,14 +6,10 @@ import { formatEuros, type IzlyOperation, type OperationKind } from '../../lib/i
 import { makeStyles, useAppTheme } from '../../lib/theme';
 import { addDays, dateLabel, todayKey } from '../../lib/time';
 import { Icon, type IconName } from '../Icon';
+import { t } from '../../lib/i18n';
 
 type Filter = 'all' | OperationKind;
-const FILTERS: { id: Filter; label: string }[] = [
-  { id: 'all', label: 'Tout' },
-  { id: 'payment', label: 'Paiements' },
-  { id: 'topup', label: 'Rechargements' },
-  { id: 'transfer', label: 'Virements' },
-];
+const FILTERS: Filter[] = ['all', 'payment', 'topup', 'transfer'];
 const KIND_ICON: Record<OperationKind, IconName> = {
   topup: 'add-circle-line',
   payment: 'shopping-bag-3-line',
@@ -38,19 +34,19 @@ export function OperationHistory({ operations }: { operations: IzlyOperation[] |
 
   return (
     <>
-      <Text style={styles.title}>Historique</Text>
+      <Text style={styles.title}>{t('pay.history')}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
         {FILTERS.map((f) => {
-          const selected = f.id === filter;
+          const selected = f === filter;
           return (
             <Pressable
-              key={f.id}
-              onPress={() => setFilter(f.id)}
+              key={f}
+              onPress={() => setFilter(f)}
               accessibilityRole="button"
               accessibilityState={{ selected }}
               style={[styles.chip, selected && styles.chipSelected]}
             >
-              <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{f.label}</Text>
+              <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{t(`pay.filter.${f}`)}</Text>
             </Pressable>
           );
         })}
@@ -59,7 +55,7 @@ export function OperationHistory({ operations }: { operations: IzlyOperation[] |
       {operations === null ? (
         <ActivityIndicator color={colors.textMuted} />
       ) : groups.length === 0 ? (
-        <Text style={styles.empty}>Aucune opération</Text>
+        <Text style={styles.empty}>{t('pay.noOperation')}</Text>
       ) : (
         groups.map((g) => (
           <View key={g.day} style={styles.group}>
@@ -108,11 +104,11 @@ const OperationRow = memo(function OperationRow({ op, first }: { op: IzlyOperati
   );
 });
 
-/** "Aujourd'hui", "Hier", "Lundi 16 novembre" (+ year when not the current one) */
+/** "Today", "Yesterday", "Monday 16 November" (+ year when not the current one) */
 function relativeDay(day: string) {
   const today = todayKey();
-  if (day === today) return "Aujourd'hui";
-  if (day === addDays(today, -1)) return 'Hier';
+  if (day === today) return t('common.today');
+  if (day === addDays(today, -1)) return t('common.yesterday');
   return day.slice(0, 4) === today.slice(0, 4) ? dateLabel(day) : `${dateLabel(day)} ${day.slice(0, 4)}`;
 }
 

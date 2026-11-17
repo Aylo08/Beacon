@@ -6,6 +6,7 @@ import { edt, UnauthorizedError, type Favori, type RoomEvent } from './edt';
 import { isHoliday, isTravelTime } from './events';
 import { getPref, setPref } from './prefs';
 import { useSession } from './sessionContext';
+import { t } from './i18n';
 
 type PersonalData = {
   favoris: Favori[] | null;
@@ -45,7 +46,7 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
     async (e: unknown) => {
       if (token && e instanceof UnauthorizedError && !(await edt.isTokenValid(token))) {
         // Renews the token (effects re-run with it) or logs out; false = couldn't reach CAS.
-        if (!(await expire())) setError('Session expirée et reconnexion impossible pour le moment. Réessayez.');
+        if (!(await expire())) setError(t('session.renewFailed'));
       } else setError(e instanceof Error ? e.message : String(e));
     },
     [token, expire],

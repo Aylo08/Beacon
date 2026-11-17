@@ -22,6 +22,7 @@ import { useSession } from '../../lib/sessionContext';
 import { makeStyles, useAppTheme } from '../../lib/theme';
 import { dayLabel, shortDayLabel, todayKey } from '../../lib/time';
 import { useRoomEvents } from '../../lib/useRoomEvents';
+import { t, tn } from '../../lib/i18n';
 
 const ALL = '__all__';
 const DEFAULT_CAMPUS = 'CERI';
@@ -89,10 +90,10 @@ function RoomsView({ token, onExpired }: { token: string; onExpired: () => void 
   };
 
   const campusOptions = [
-    { value: ALL, label: 'Tous les campus', detail: String(campuses?.reduce((n, c) => n + c.names.length, 0) ?? '') },
+    { value: ALL, label: t('rooms.allCampuses'), detail: String(campuses?.reduce((n, c) => n + c.names.length, 0) ?? '') },
     ...(campuses ?? []).map((c) => ({ value: c.letter, label: c.letter, detail: String(c.names.length) })),
   ];
-  const campusLabel = campus === ALL ? 'Tous' : campus;
+  const campusLabel = campus === ALL ? t('rooms.all') : campus;
 
   const filterBar = (
     <View style={[styles.filterBar, wide ? styles.filterBarTop : styles.filterBarBottom]}>
@@ -100,7 +101,7 @@ function RoomsView({ token, onExpired }: { token: string; onExpired: () => void 
         <Icon name="search-line" size={18} color={colors.textMuted} />
         <TextInput
           style={styles.searchInput}
-          placeholder={wide ? 'Rechercher une salle (ex. stat 6, amphi, C 129)…' : 'Rechercher une salle…'}
+          placeholder={wide ? t('rooms.searchWide') : t('rooms.search')}
           placeholderTextColor={colors.textFaint}
           value={query}
           onChangeText={setQuery}
@@ -114,7 +115,7 @@ function RoomsView({ token, onExpired }: { token: string; onExpired: () => void 
             onPress={() => setQuery('')}
             hitSlop={10}
             accessibilityRole="button"
-            accessibilityLabel="Effacer la recherche"
+            accessibilityLabel={t('rooms.clearSearch')}
           >
             <Icon name="close-circle-fill" size={18} color={colors.textFaint} />
           </Pressable>
@@ -123,7 +124,7 @@ function RoomsView({ token, onExpired }: { token: string; onExpired: () => void 
       <Pressable
         onPress={() => setCampusOpen(true)}
         accessibilityRole="button"
-        accessibilityLabel={`Campus : ${campusLabel}`}
+        accessibilityLabel={t('rooms.campusA11y', { campus: campusLabel })}
         style={styles.campusButton}
       >
         <Icon name="map-pin-2-line" size={16} color={colors.textSecondary} />
@@ -179,14 +180,14 @@ function RoomsView({ token, onExpired }: { token: string; onExpired: () => void 
       {/* Status line, always at the bottom (the tab bar handles the safe area below it) */}
       <View style={styles.statusBar}>
         <Text style={styles.muted}>
-          {rooms.length} salle{rooms.length > 1 ? 's' : ''}
-          {loaded < codes.length ? ` · chargement ${loaded}/${codes.length}…` : ''}
+          {tn('rooms.count', rooms.length)}
+          {loaded < codes.length ? t('rooms.loadingCount', { loaded, total: codes.length }) : ''}
         </Text>
       </View>
 
       <OptionSheet
         visible={campusOpen}
-        title="Campus"
+        title={t('rooms.campus')}
         options={campusOptions}
         value={campus}
         onClose={() => setCampusOpen(false)}

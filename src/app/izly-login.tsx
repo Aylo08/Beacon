@@ -13,6 +13,7 @@ import type { Credentials } from '../lib/credentials';
 import { IZLY_HOST, IZLY_LOGON_URL, IZLY_ORIGIN, izlySignIn } from '../lib/izly';
 import { allowOnly, trustedMessage } from '../lib/webview';
 import { makeStyles, useAppTheme } from '../lib/theme';
+import { t } from '../lib/i18n';
 
 // Before any page script: keep the consent modal invisible from the first frame.
 const HIDE_CONSENT = `(function () {
@@ -94,7 +95,7 @@ export default function IzlyLogin() {
     const creds = submitted.current;
     submitted.current = null;
     if (!creds) {
-      setStatus({ error: 'Identifiants non récupérés sur la page Izly.' });
+      setStatus({ error: t('izly.credentialsMissing') });
       return;
     }
     setStatus('signing');
@@ -149,12 +150,12 @@ export default function IzlyLogin() {
           {typeof status === 'object' ? (
             <>
               <Text style={styles.error}>{status.error}</Text>
-              <PrimaryButton label="Réessayer" onPress={retry} />
+              <PrimaryButton label={t('common.retry')} onPress={retry} />
             </>
           ) : (
             <>
               <ActivityIndicator color={colors.textMuted} />
-              <Text style={styles.muted}>Connexion à Izly…</Text>
+              <Text style={styles.muted}>{t('izly.signingIn')}</Text>
             </>
           )}
         </View>

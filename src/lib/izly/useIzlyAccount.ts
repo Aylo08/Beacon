@@ -18,6 +18,7 @@ import {
   type IzlyCounter,
   type IzlyOperation,
 } from './index';
+import { t } from '../i18n';
 
 const FOCUS_REFRESH_MS = 60_000;
 
@@ -52,7 +53,7 @@ export function useIzlyAccount() {
       fetchIzlyOperations().then(setOperations),
     ]);
     const failure = results.find((r): r is PromiseRejectedResult => r.status === 'rejected')?.reason;
-    if (failure instanceof IzlyInvalidCredentialsError) forget('Izly a refusé vos identifiants, reconnectez-vous.');
+    if (failure instanceof IzlyInvalidCredentialsError) forget(t('izly.refused'));
     else if (failure instanceof IzlyNotSignedInError) forget(null);
     else if (failure) setError(failure instanceof Error ? failure.message : String(failure));
   }, [forget]);

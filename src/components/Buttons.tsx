@@ -2,6 +2,7 @@
 import { Pressable, Text, View } from 'react-native';
 import { makeStyles, useAppTheme, type ThemeMode } from '../lib/theme';
 import { Icon, type IconName } from './Icon';
+import { t } from '../lib/i18n';
 
 export function IconButton({
   icon,
@@ -84,44 +85,64 @@ export function OutlineButton({
   );
 }
 
-const THEMES: { mode: ThemeMode; icon: IconName; label: string; next: ThemeMode }[] = [
-  { mode: 'auto', icon: 'contrast-2-line', label: 'Auto', next: 'light' },
-  { mode: 'light', icon: 'sun-line', label: 'Clair', next: 'dark' },
-  { mode: 'dark', icon: 'moon-line', label: 'Sombre', next: 'auto' },
+const THEMES: { mode: ThemeMode; icon: IconName; label: () => string; next: ThemeMode }[] = [
+  { mode: 'auto', icon: 'contrast-2-line', label: () => t('theme.auto'), next: 'light' },
+  { mode: 'light', icon: 'sun-line', label: () => t('theme.light'), next: 'dark' },
+  { mode: 'dark', icon: 'moon-line', label: () => t('theme.dark'), next: 'auto' },
 ];
 
 /** Compact toggle cycling auto → light → dark (used where space is tight). */
 export function ThemeToggle() {
   const { mode, setMode, colors } = useAppTheme();
-  const t = THEMES.find((x) => x.mode === mode)!;
+  const theme = THEMES.find((x) => x.mode === mode)!;
   return (
     <IconButton
-      icon={t.icon}
-      label={`Thème : ${t.label} (changer)`}
-      onPress={() => setMode(t.next)}
+      icon={theme.icon}
+      label={t('theme.toggleA11y', { label: theme.label() })}
+      onPress={() => setMode(theme.next)}
       color={colors.textSecondary}
     />
   );
 }
 
-/** Segmented Auto / Clair / Sombre picker. */
+/** Segmented Auto / Light / Dark picker. */
 export function ThemePicker() {
-  const { mode, setMode, colors } = useAppTheme();
+  const { mode, setMode } = useAppTheme();
+  return (
+    <Segmented
+      options={THEMES.map((theme) => ({ value: theme.mode, label: theme.label(), icon: theme.icon }))}
+      value={mode}
+      onChange={setMode}
+    />
+  );
+}
+
+/** Segmented single choice (radio group). */
+export function Segmented<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string; icon?: IconName }[];
+  value: T;
+  onChange: (value: T) => void;
+}) {
+  const { colors } = useAppTheme();
   const styles = useStyles();
   return (
     <View style={styles.segmented} accessibilityRole="radiogroup">
-      {THEMES.map((t) => {
-        const selected = t.mode === mode;
+      {options.map((o) => {
+        const selected = o.value === value;
         return (
           <Pressable
-            key={t.mode}
-            onPress={() => setMode(t.mode)}
+            key={o.value}
+            onPress={() => onChange(o.value)}
             accessibilityRole="radio"
             accessibilityState={{ selected }}
             style={[styles.segment, selected && styles.segmentSelected]}
           >
-            <Icon name={t.icon} size={16} color={selected ? colors.inverseText : colors.textSecondary} />
-            <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>{t.label}</Text>
+            {o.icon && <Icon name={o.icon} size={16} color={selected ? colors.inverseText : colors.textSecondary} />}
+            <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>{o.label}</Text>
           </Pressable>
         );
       })}

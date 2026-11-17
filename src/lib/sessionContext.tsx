@@ -6,8 +6,9 @@ import { CAS_SERVICE, edt } from './edt';
 import { clearIzly } from './izly';
 import { clearToken, getToken, setToken } from './session';
 import { clearStudentCard } from './studentCard';
+import { t } from './i18n';
 
-const EXPIRED_MESSAGE = 'Session expirée, reconnectez-vous.';
+const expiredMessage = () => t('session.expired');
 
 type Session = {
   /** undefined while loading from storage, null when logged out. */
@@ -73,7 +74,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     renewing.current ??= (async () => {
       const result = await renewToken();
       if (result === 'unavailable') return false;
-      if (result === 'invalid') await signOut(EXPIRED_MESSAGE);
+      if (result === 'invalid') await signOut(expiredMessage());
       else await signIn(result.token);
       return true;
     })().finally(() => {

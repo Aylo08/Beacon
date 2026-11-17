@@ -10,6 +10,7 @@ import { FullscreenBarcode } from '../components/FullscreenBarcode';
 import { StudentCardView } from '../components/StudentCardView';
 import { barcodeValue, loadStudentCard, saveStudentCard, type StudentCard } from '../lib/studentCard';
 import { makeStyles, useAppTheme } from '../lib/theme';
+import { intlLocale, t } from '../lib/i18n';
 
 export default function CardScreen() {
   const styles = useStyles();
@@ -39,9 +40,9 @@ export default function CardScreen() {
       options={{
         headerRight: () =>
           fetching ? (
-            card ? <IconButton icon="close-line" label="Annuler" onPress={() => setFetching(false)} /> : null
+            card ? <IconButton icon="close-line" label={t('card.cancel')} onPress={() => setFetching(false)} /> : null
           ) : (
-            <IconButton icon="refresh-line" label="Actualiser la carte" onPress={startFetch} />
+            <IconButton icon="refresh-line" label={t('card.refresh')} onPress={startFetch} />
           ),
       }}
     />
@@ -87,12 +88,12 @@ export default function CardScreen() {
     >
       {header}
       {card && <StudentCardView card={card} width={cardWidth} />}
-      {error && <Text style={styles.error}>Impossible de récupérer la carte : {error}</Text>}
+      {error && <Text style={styles.error}>{t('card.fetchError', { error })}</Text>}
       {card ? (
         <>
-          <PrimaryButton icon="barcode-line" label="Afficher le code-barres" onPress={() => setBarcodeOpen(true)} />
+          <PrimaryButton icon="barcode-line" label={t('card.showBarcode')} onPress={() => setBarcodeOpen(true)} />
           <Text style={styles.muted}>
-            Mise à jour le {new Date(card.fetchedAt).toLocaleDateString('fr-FR')} · disponible hors connexion
+            {t('card.updated', { date: new Date(card.fetchedAt).toLocaleDateString(intlLocale()) })}
           </Text>
           <FullscreenBarcode
             value={barcodeValue(card)}
@@ -102,7 +103,7 @@ export default function CardScreen() {
           />
         </>
       ) : (
-        <PrimaryButton icon="login-box-line" label="Se connecter à l’ENT" onPress={startFetch} />
+        <PrimaryButton icon="login-box-line" label={t('card.signInEnt')} onPress={startFetch} />
       )}
     </ScrollView>
   );

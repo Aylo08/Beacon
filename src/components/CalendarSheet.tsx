@@ -4,10 +4,10 @@ import { makeStyles, useAppTheme } from '../lib/theme';
 import { addMonths, monthGrid, monthLabel, todayKey } from '../lib/time';
 import { Icon } from './Icon';
 import { Sheet } from './Sheet';
+import { t } from '../lib/i18n';
 
 type Props = { visible: boolean; value: string; onSelect: (day: string) => void; onClose: () => void };
 
-const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
 export function CalendarSheet({ visible, value, onSelect, onClose }: Props) {
   return (
@@ -22,23 +22,24 @@ function MonthView({ value, onSelect }: { value: string; onSelect: (day: string)
   const [month, setMonth] = useState(value.slice(0, 7));
   const today = todayKey();
   const cells = monthGrid(month);
+  const weekdays = t('calendar.weekdays').split(',');
   const styles = useStyles();
   const { colors } = useAppTheme();
 
   return (
     <View>
       <View style={styles.head}>
-        <Pressable onPress={() => setMonth((m) => addMonths(m, -1))} hitSlop={8} accessibilityRole="button" accessibilityLabel="Mois précédent" style={styles.navBtn}>
+        <Pressable onPress={() => setMonth((m) => addMonths(m, -1))} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('calendar.prevMonth')} style={styles.navBtn}>
           <Icon name="arrow-left-s-line" size={22} color={colors.text} />
         </Pressable>
         <Text style={styles.month}>{monthLabel(month)}</Text>
-        <Pressable onPress={() => setMonth((m) => addMonths(m, 1))} hitSlop={8} accessibilityRole="button" accessibilityLabel="Mois suivant" style={styles.navBtn}>
+        <Pressable onPress={() => setMonth((m) => addMonths(m, 1))} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('calendar.nextMonth')} style={styles.navBtn}>
           <Icon name="arrow-right-s-line" size={22} color={colors.text} />
         </Pressable>
       </View>
 
       <View style={styles.grid}>
-        {WEEKDAYS.map((d, i) => (
+        {weekdays.map((d, i) => (
           <Text key={`h${i}`} style={[styles.cell, styles.weekday]}>
             {d}
           </Text>
@@ -65,7 +66,7 @@ function MonthView({ value, onSelect }: { value: string; onSelect: (day: string)
       </View>
 
       <Pressable onPress={() => onSelect(today)} style={styles.todayBtn} accessibilityRole="button">
-        <Text style={styles.todayBtnText}>Aujourd&apos;hui</Text>
+        <Text style={styles.todayBtnText}>{t('common.today')}</Text>
       </Pressable>
     </View>
   );

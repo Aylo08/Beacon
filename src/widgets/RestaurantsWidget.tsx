@@ -5,6 +5,7 @@ import { ActivityIndicator, Text, View } from 'react-native';
 import { isRestoOpen, RESTOS } from '../lib/crous';
 import { makeStyles, useAppTheme } from '../lib/theme';
 import { useAttendance, useNow } from '../lib/useLive';
+import { t } from '../lib/i18n';
 
 export function RestaurantsWidget() {
   const focused = useIsFocused();
@@ -39,23 +40,23 @@ function RestoRow({
   if (!open) {
     right = (
       <View style={[styles.pill, styles.closed]}>
-        <Text style={styles.closedText}>Fermé</Text>
+        <Text style={styles.closedText}>{t('resto.closed')}</Text>
       </View>
     );
   } else if (attendance) {
     right = (
       <View style={styles.value}>
         <Text style={styles.count}>{attendance.count}</Text>
-        <Text style={styles.unit}>repas</Text>
+        <Text style={styles.unit}>{t('resto.meals')}</Text>
         {attendance.full && (
           <View style={[styles.pill, { backgroundColor: colors.live }]}>
-            <Text style={styles.pillText}>Complet</Text>
+            <Text style={styles.pillText}>{t('resto.full')}</Text>
           </View>
         )}
       </View>
     );
   } else if (error) {
-    right = <Text style={styles.muted}>Indisponible</Text>;
+    right = <Text style={styles.muted}>{t('resto.unavailable')}</Text>;
   } else {
     right = <ActivityIndicator color={colors.textMuted} />;
   }
@@ -64,13 +65,13 @@ function RestoRow({
     <View
       style={[styles.row, divider && styles.divider]}
       accessible
-      accessibilityLabel={`${resto.label} : ${!open ? 'fermé' : attendance ? `${attendance.count} repas${attendance.full ? ', complet' : ''}` : 'chargement'}`}
+      accessibilityLabel={`${resto.label}: ${!open ? t('resto.a11yClosed') : attendance ? `${t('resto.a11yMeals', { count: attendance.count })}${attendance.full ? t('resto.a11yFull') : ''}` : t('common.loading')}`}
     >
       <View style={styles.body}>
         <Text style={styles.name}>{resto.label}</Text>
         <Text style={styles.muted} numberOfLines={1}>
           {resto.campuses}
-          {open && attendance && !attendance.upToDate ? ' · données non à jour' : ''}
+          {open && attendance && !attendance.upToDate ? t('resto.stale') : ''}
         </Text>
       </View>
       {right}

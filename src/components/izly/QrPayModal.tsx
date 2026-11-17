@@ -10,6 +10,7 @@ import { BRAND } from '../../lib/theme';
 import { useNow } from '../../lib/useLive';
 import { useMaxBrightness } from '../FullscreenBarcode';
 import { Icon } from '../Icon';
+import { t } from '../../lib/i18n';
 
 const IZLY_RED = BRAND.izly;
 
@@ -56,13 +57,13 @@ export function QrPayModal({ visible, onClose }: { visible: boolean; onClose: ()
           onPress={close}
           hitSlop={12}
           accessibilityRole="button"
-          accessibilityLabel="Fermer le QR code"
+          accessibilityLabel={t('qr.close')}
           style={{ position: 'absolute', top: insets.top + 12, right: insets.right + 16 }}
         >
           <Icon name="close-line" size={28} color="#6b7280" />
         </Pressable>
 
-        <Text style={{ fontSize: 20, fontWeight: '800', color: '#111' }}>Payer avec Izly</Text>
+        <Text style={{ fontSize: 20, fontWeight: '800', color: '#111' }}>{t('qr.title')}</Text>
 
         <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
           {state.status === 'loading' && <ActivityIndicator color="#6b7280" />}
@@ -72,7 +73,7 @@ export function QrPayModal({ visible, onClose }: { visible: boolean; onClose: ()
               source={{ uri: state.qr.uri }}
               style={{ width: size, height: size, opacity: expired ? 0.12 : 1 }}
               resizeMode="contain"
-              accessibilityLabel="QR code de paiement Izly"
+              accessibilityLabel={t('qr.a11y')}
             />
           )}
         </View>
@@ -80,10 +81,10 @@ export function QrPayModal({ visible, onClose }: { visible: boolean; onClose: ()
         {state.status === 'ready' && state.qr.validUntil != null && left != null && (
           <View style={{ alignItems: 'center', gap: 4 }} accessibilityLiveRegion="polite">
             <Text style={{ fontSize: 17, fontWeight: '600', color: expired ? '#c0392b' : '#111', fontVariant: ['tabular-nums'] }}>
-              {expired ? 'Ce code a expiré' : `Ce code expire dans ${formatLeft(left)}`}
+              {expired ? t('qr.expired') : t('qr.expiresIn', { left: formatLeft(left) })}
             </Text>
             <Text style={{ fontSize: 13, color: '#6b7280' }}>
-              {expired ? 'Demandez-en un nouveau pour payer' : `Valable jusqu’à ${clockTime(state.qr.validUntil)}`}
+              {expired ? t('qr.askNew') : t('qr.validUntil', { time: clockTime(state.qr.validUntil) })}
             </Text>
           </View>
         )}
@@ -95,12 +96,12 @@ export function QrPayModal({ visible, onClose }: { visible: boolean; onClose: ()
             style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: IZLY_RED, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 8 }}
           >
             <Icon name="refresh-line" size={18} color="#fff" />
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Nouveau code</Text>
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>{t('qr.new')}</Text>
           </Pressable>
         )}
 
         <Text style={{ fontSize: 13, color: '#6b7280', position: 'absolute', bottom: insets.bottom + 24, textAlign: 'center' }}>
-          Présentez ce code à la caisse
+          {t('qr.present')}
         </Text>
       </View>
     </Modal>
@@ -112,9 +113,9 @@ function formatLeft(ms: number) {
   const s = Math.ceil(ms / 1000);
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
-  if (h > 0) return `${h} h ${String(m).padStart(2, '0')} min`;
-  if (m > 0) return `${m} min ${String(s % 60).padStart(2, '0')} s`;
-  return `${s} s`;
+  if (h > 0) return t('duration.qrHours', { h, mm: String(m).padStart(2, '0') });
+  if (m > 0) return t('duration.qrMinutes', { m, ss: String(s % 60).padStart(2, '0') });
+  return t('duration.qrSeconds', { s });
 }
 
 /** Paris "00:09" */

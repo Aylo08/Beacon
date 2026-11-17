@@ -6,6 +6,7 @@ import { eventColors, makeStyles, useAppTheme } from '../lib/theme';
 import { dayLabel, formatMinutes, parisParts } from '../lib/time';
 import { Icon, type IconName } from './Icon';
 import { Sheet } from './Sheet';
+import { t } from '../lib/i18n';
 
 const FIELD_ICONS: Record<string, IconName> = {
   Salle: 'map-pin-2-line',
@@ -26,7 +27,7 @@ function Details({ event }: { event: RoomEvent }) {
   const { colors } = useAppTheme();
   const c = eventColors(colors, event.type);
   const fields = parseTitle(event.title);
-  const subject = fields.find((f) => f.key === 'Matière')?.value ?? fields[0]?.key ?? 'Cours';
+  const subject = fields.find((f) => f.key === 'Matière')?.value ?? fields[0]?.key ?? t('event.class');
   const start = parisParts(new Date(event.start));
   const end = parisParts(new Date(event.end));
   const rest = fields.filter((f) => f.key !== 'Matière' && f.key !== 'Type' && f.value);

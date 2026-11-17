@@ -12,6 +12,7 @@ import { useDebug } from '../../lib/debugOverride';
 import { makeStyles, useAppTheme } from '../../lib/theme';
 import { WIDGETS, widgetById } from '../../widgets/registry';
 import { useWidgetLayout } from '../../widgets/useWidgetLayout';
+import { t } from '../../lib/i18n';
 
 // Development only: `__DEV__` is false in release bundles, where Metro drops
 // this branch (and so the debug module) before resolving dependencies.
@@ -48,8 +49,8 @@ export default function HomeScreen() {
         >
           <Icon name="id-card-line" size={22} color={colors.primary} />
           <View style={styles.flexShrink}>
-            <Text style={styles.addTitle}>Carte étudiant</Text>
-            <Text style={styles.hint}>Afficher ma carte numérique</Text>
+            <Text style={styles.addTitle}>{t('home.card.title')}</Text>
+            <Text style={styles.hint}>{t('home.card.hint')}</Text>
           </View>
           <Icon name="arrow-right-s-line" size={22} color={colors.textMuted} />
         </Pressable>
@@ -62,17 +63,17 @@ export default function HomeScreen() {
             <View key={id} style={styles.card}>
               <View style={styles.cardHeader}>
                 <Icon name={w.icon} size={18} color={colors.primary} />
-                <Text style={styles.cardTitle}>{w.title}</Text>
+                <Text style={styles.cardTitle}>{w.title()}</Text>
                 {editing && (
                   <View style={styles.cardActions}>
-                    <SmallButton icon="arrow-up-s-line" label="Monter" disabled={index === 0} onPress={() => move(id, -1)} />
+                    <SmallButton icon="arrow-up-s-line" label={t('home.widget.up')} disabled={index === 0} onPress={() => move(id, -1)} />
                     <SmallButton
                       icon="arrow-down-s-line"
-                      label="Descendre"
+                      label={t('home.widget.down')}
                       disabled={index === ids.length - 1}
                       onPress={() => move(id, 1)}
                     />
-                    <SmallButton icon="close-line" label={`Retirer ${w.title}`} danger onPress={() => remove(id)} />
+                    <SmallButton icon="close-line" label={t('home.widget.remove', { title: w.title() })} danger onPress={() => remove(id)} />
                   </View>
                 )}
               </View>
@@ -82,27 +83,27 @@ export default function HomeScreen() {
         })}
 
         {ids.length === 0 && !editing && (
-          <Text style={styles.hint}>Aucun widget. Touchez « Modifier » pour en ajouter.</Text>
+          <Text style={styles.hint}>{t('home.widget.empty')}</Text>
         )}
 
         {editing && (
           <View style={styles.card}>
-            <Text style={[styles.cardTitle, styles.sectionPad]}>Ajouter un widget</Text>
+            <Text style={[styles.cardTitle, styles.sectionPad]}>{t('home.widget.addTitle')}</Text>
             {available.length === 0 ? (
-              <Text style={[styles.hint, styles.sectionPad]}>Tous les widgets disponibles sont déjà affichés.</Text>
+              <Text style={[styles.hint, styles.sectionPad]}>{t('home.widget.allShown')}</Text>
             ) : (
               available.map((w) => (
                 <Pressable
                   key={w.id}
                   onPress={() => add(w.id)}
                   accessibilityRole="button"
-                  accessibilityLabel={`Ajouter ${w.title}`}
+                  accessibilityLabel={t('home.widget.add', { title: w.title() })}
                   style={({ pressed }) => [styles.addRow, pressed && styles.pressed]}
                 >
                   <Icon name={w.icon} size={20} color={colors.primary} />
                   <View style={styles.flexShrink}>
-                    <Text style={styles.addTitle}>{w.title}</Text>
-                    <Text style={styles.hint}>{w.description}</Text>
+                    <Text style={styles.addTitle}>{w.title()}</Text>
+                    <Text style={styles.hint}>{w.description()}</Text>
                   </View>
                   <Icon name="add-line" size={22} color={colors.primary} />
                 </Pressable>
@@ -115,11 +116,11 @@ export default function HomeScreen() {
           <Pressable
             onPress={() => setEditing((e) => !e)}
             accessibilityRole="button"
-            accessibilityLabel={editing ? 'Terminer la modification des widgets' : 'Modifier les widgets'}
+            accessibilityLabel={editing ? t('home.doneA11y') : t('home.editA11y')}
             style={[styles.footerButton, editing && styles.footerButtonActive]}
           >
             <Icon name={editing ? 'check-line' : 'pencil-line'} size={18} color={editing ? colors.inverseText : colors.textSecondary} />
-            <Text style={[styles.footerText, editing && styles.footerTextActive]}>{editing ? 'Terminé' : 'Modifier'}</Text>
+            <Text style={[styles.footerText, editing && styles.footerTextActive]}>{editing ? t('home.done') : t('home.edit')}</Text>
           </Pressable>
           <Pressable
             onPress={() => router.push('/settings')}
@@ -127,7 +128,7 @@ export default function HomeScreen() {
             style={({ pressed }) => [styles.footerButton, pressed && styles.pressed]}
           >
             <Icon name="settings-3-line" size={18} color={colors.textSecondary} />
-            <Text style={styles.footerText}>Réglages</Text>
+            <Text style={styles.footerText}>{t('home.settings')}</Text>
           </Pressable>
         </View>
       </View>

@@ -5,6 +5,7 @@ import { ActivityIndicator, Button, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSession } from '../lib/sessionContext';
 import { makeStyles, useAppTheme } from '../lib/theme';
+import { t } from '../lib/i18n';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -37,10 +38,10 @@ export default function Login() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Identifiants ENT Avignon</Text>
+      <Text style={styles.title}>{t('login.webTitle')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Identifiant"
+        placeholder={t('login.username')}
         placeholderTextColor={colors.textFaint}
         autoCapitalize="none"
         autoComplete="username"
@@ -49,7 +50,7 @@ export default function Login() {
       />
       <TextInput
         style={styles.input}
-        placeholder="Mot de passe"
+        placeholder={t('login.password')}
         placeholderTextColor={colors.textFaint}
         secureTextEntry
         autoComplete="current-password"
@@ -58,9 +59,9 @@ export default function Login() {
         onSubmitEditing={submit}
       />
       {error && <Text style={styles.error}>{error}</Text>}
-      {busy ? <ActivityIndicator /> : <Button title="Se connecter" color={colors.moved} onPress={submit} disabled={!username || !password} />}
+      {busy ? <ActivityIndicator /> : <Button title={t('common.signIn')} color={colors.moved} onPress={submit} disabled={!username || !password} />}
       <Text style={styles.note}>
-        {"Vos identifiants sont transmis une seule fois au CAS de l'université et ne sont pas conservés."}
+        {t('login.webNote')}
       </Text>
     </View>
   );

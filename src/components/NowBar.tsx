@@ -28,6 +28,7 @@ import { useRealtime, useTimetable } from '../lib/useBus';
 import { useAttendance, useNow } from '../lib/useLive';
 import { HeroBackground, type HeroMode } from './HeroBackground';
 import { Icon } from './Icon';
+import { t, type TranslationKey } from '../lib/i18n';
 
 const TICK_MS = 15_000;
 /** How long before a class the bar switches to announcing it: first class / end of lunch… */
@@ -72,11 +73,11 @@ const toItems = (events: RoomEvent[] | null) =>
 /** 35 → "35 min", 95 → "1 h 35", 1600 → "1 j 2 h" */
 export function formatDuration(totalMin: number) {
   const m = Math.max(0, Math.ceil(totalMin));
-  if (m < 60) return `${m} min`;
-  if (m < 24 * 60) return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`;
+  if (m < 60) return t('duration.min', { m });
+  if (m < 24 * 60) return t('duration.hours', { h: Math.floor(m / 60), mm: String(m % 60).padStart(2, '0') });
   const d = Math.floor(m / (24 * 60));
   const h = Math.floor((m % (24 * 60)) / 60);
-  return h ? `${d} j ${h} h` : `${d} j`;
+  return h ? t('duration.daysHours', { d, h }) : t('duration.days', { d });
 }
 
 const hhmm = (ms: number) => formatMinutes(parisParts(new Date(ms)).minutes);
@@ -226,23 +227,28 @@ export function NowBar({ focused, insets }: { focused: boolean; insets: EdgeInse
   } else if (current) {
     const progress = Math.min(1, Math.max(0, (now - current.start) / (current.end - current.start)));
     content = (
-      <View accessibilityLabel={`En cours : ${current.subject}, fin dans ${formatDuration((current.end - now) / 60000)}`}>
-        <Text style={styles.kicker}>EN COURS{current.type ? ` · ${current.type.toUpperCase()}` : ''}</Text>
+      <View accessibilityLabel={t('now.inProgressA11y', { subject: current.subject, left: formatDuration((current.end - now) / 60000) })}>
+        <Text style={styles.kicker}>
+          {t('now.inProgress')}
+          {current.type ? ` · ${current.type.toUpperCase()}` : ''}
+        </Text>
         <Text style={styles.title} numberOfLines={1}>
           {[current.subject, current.room].filter(Boolean).join(' · ')}
         </Text>
         <View style={styles.track}>
           <View style={[styles.fill, { width: `${progress * 100}%` }]} />
         </View>
-        <Text style={styles.detail}>Reste {formatDuration((current.end - now) / 60000)}</Text>
+        <Text style={styles.detail}>{t('now.left', { left: formatDuration((current.end - now) / 60000) })}</Text>
       </View>
     );
   } else if (soon) {
     const wait = formatDuration((soon.start - now) / 60000);
     content = (
-      <View accessibilityLabel={`Prochain cours dans ${wait} : ${soon.subject}${soon.room ? `, salle ${soon.room}` : ''}`}>
+      <View
+        accessibilityLabel={`${t('now.soonA11y', { wait, subject: soon.subject })}${soon.room ? t('now.soonRoomA11y', { room: soon.room }) : ''}`}
+      >
         <Text style={styles.kicker}>
-          DANS {wait.toUpperCase()}
+          {t('now.soon', { wait: wait.toUpperCase() })}
           {soon.type ? ` · ${soon.type.toUpperCase()}` : ''} · {hhmm(soon.start)}
         </Text>
         <Text style={styles.title} numberOfLines={2}>
@@ -264,9 +270,9 @@ export function NowBar({ focused, insets }: { focused: boolean; insets: EdgeInse
     const wd = weekday(today);
     content = (
       <>
-        <Text style={styles.greeting}>Bonne journée !</Text>
+        <Text style={styles.greeting}>{t('now.goodDay')}</Text>
         <Text style={styles.detail}>
-          {holidayToday ? 'Jour férié, pas de cours' : wd === 0 || wd === 6 ? 'C’est le week-end' : 'Pas de cours aujourd’hui'}
+          {holidayToday ? t('now.holiday') : wd === 0 || wd === 6 ? t('now.weekend') : t('now.noClassToday')}
         </Text>
       </>
     );
@@ -274,8 +280,8 @@ export function NowBar({ focused, insets }: { focused: boolean; insets: EdgeInse
     const late = nowMin >= 18 * 60 || nowMin < 5 * 60;
     content = (
       <>
-        <Text style={styles.greeting}>{late ? 'Bonne nuit' : 'Journée terminée'}</Text>
-        <Text style={styles.detail}>Plus de cours aujourd’hui</Text>
+        <Text style={styles.greeting}>{late ? t('now.goodNight') : t('now.dayOver')}</Text>
+        <Text style={styles.detail}>{t('now.noMoreClasses')}</Text>
         {busBlock ? <View style={styles.section}>{busBlock}</View> : compactNext}
         {needsHomeStop && <HomeStopHint />}
       </>
@@ -288,24 +294,25 @@ export function NowBar({ focused, insets }: { focused: boolean; insets: EdgeInse
         <View style={styles.row}>
           <Icon name="restaurant-line" size={14} color={colors.onAccent} />
           <Text style={styles.kicker} numberOfLines={1}>
-            RESTO U{attendance ? ` · ${attendance.name}` : ''}
+            {t('now.resto')}
+            {attendance ? ` · ${attendance.name}` : ''}
           </Text>
         </View>
         {attendance ? (
           <>
             <View style={styles.row}>
               <Text style={styles.big}>{attendance.count}</Text>
-              <Text style={styles.detail}>repas</Text>
+              <Text style={styles.detail}>{t('now.meals')}</Text>
               {attendance.full && (
                 <View style={styles.pill}>
-                  <Text style={styles.pillText}>Complet</Text>
+                  <Text style={styles.pillText}>{t('resto.full')}</Text>
                 </View>
               )}
             </View>
-            {!attendance.upToDate && <Text style={styles.detail}>Données non à jour</Text>}
+            {!attendance.upToDate && <Text style={styles.detail}>{t('now.stale')}</Text>}
           </>
         ) : crousError ? (
-          <Text style={styles.detail}>Affluence indisponible ({crousError})</Text>
+          <Text style={styles.detail}>{t('now.attendanceUnavailable', { error: crousError })}</Text>
         ) : (
           <ActivityIndicator color={colors.onAccent} style={styles.spinner} />
         )}
@@ -320,7 +327,7 @@ export function NowBar({ focused, insets }: { focused: boolean; insets: EdgeInse
       </>
     );
   } else {
-    content = <Text style={styles.title}>Aucun cours à venir</Text>;
+    content = <Text style={styles.title}>{t('now.noUpcoming')}</Text>;
   }
 
   return (
@@ -339,7 +346,7 @@ export function NowBar({ focused, insets }: { focused: boolean; insets: EdgeInse
 
 function HomeStopHint() {
   const styles = useStyles();
-  return <Text style={[styles.detail, styles.hint]}>Choisissez votre arrêt de bus dans les réglages pour voir le prochain C3.</Text>;
+  return <Text style={[styles.detail, styles.hint]}>{t('now.homeStopHint')}</Text>;
 }
 
 /** "Agroparc 142" (+ "complet") in the compact restaurants line. */
@@ -351,18 +358,18 @@ function RestoChip({ label, attendance, failed }: { label: string; attendance: A
       <Text style={styles.chipValue}>{attendance ? attendance.count : failed ? '–' : '…'}</Text>
       {attendance?.full && (
         <View style={styles.pill}>
-          <Text style={styles.pillText}>Complet</Text>
+          <Text style={styles.pillText}>{t('resto.full')}</Text>
         </View>
       )}
     </View>
   );
 }
 
-const BUS_TITLES: Record<BusPlan['kind'], string> = {
-  travel: 'TEMPS DE DÉPLACEMENT',
-  toCampus: 'BUS VERS LE CAMPUS',
-  home: 'RETOUR',
-};
+const BUS_TITLES = {
+  travel: 'now.busTravel',
+  toCampus: 'now.busToCampus',
+  home: 'now.busHome',
+} as const satisfies Record<BusPlan['kind'], TranslationKey>;
 
 function BusCard({
   plan,
@@ -389,7 +396,7 @@ function BusCard({
     <View style={styles.row}>
       <Icon name="bus-line" size={14} color={colors.onAccent} />
       <Text style={styles.kicker} numberOfLines={1}>
-        {BUS_TITLES[plan.kind]} · {plan.from} → {plan.to}
+        {t(BUS_TITLES[plan.kind])} · {plan.from} → {plan.to}
       </Text>
     </View>
   );
@@ -399,7 +406,7 @@ function BusCard({
       <>
         {header}
         {error ? (
-          <Text style={styles.detail}>Horaires indisponibles ({error})</Text>
+          <Text style={styles.detail}>{t('bus.unavailable', { error })}</Text>
         ) : (
           <ActivityIndicator color={colors.onAccent} style={styles.spinner} />
         )}
@@ -411,7 +418,7 @@ function BusCard({
     return (
       <>
         {header}
-        <Text style={styles.title}>Aucun bus dans les prochaines 24 h</Text>
+        <Text style={styles.title}>{t('now.noBus24h')}</Text>
       </>
     );
   }
@@ -468,7 +475,7 @@ function CompactBus({
         </>
       ) : (
         <Text style={styles.compactBusText} numberOfLines={1}>
-          {deps ? `Aucun bus · ${route}` : error ? `Horaires indisponibles · ${route}` : `… · ${route}`}
+          {`${deps ? t('now.noBus') : error ? t('now.busUnavailable') : '…'} · ${route}`}
         </Text>
       )}
     </View>
@@ -549,27 +556,27 @@ function EtaRow({ first, later, now, lineColor }: { first: Departure; later: Dep
   );
 }
 
-/** Wait before a departure: "dans 6 min" / "6 min" (or the time when ≥ 1 h, "Maintenant" when due). */
+/** Wait before a departure: "in 6 min" / "6 min" (or the time when ≥ 1 h, "Now" when due). */
 function eta(d: Departure, now: number, long: boolean) {
   const mins = Math.round((d.expected - now) / 60_000);
-  if (mins <= 0) return 'Maintenant';
-  if (mins >= 60) return long ? `à ${hhmm(d.expected)}` : hhmm(d.expected);
-  return long ? `dans ${mins} min` : `${mins} min`;
+  if (mins <= 0) return t('bus.now');
+  if (mins >= 60) return long ? t('now.etaAt', { time: hhmm(d.expected) }) : hhmm(d.expected);
+  return long ? t('now.etaIn', { min: mins }) : t('duration.min', { m: mins });
 }
 
 /** Realtime indicator: green when the time comes from the live feed, grey when scheduled only. */
 function LiveIcon({ live, size }: { live: boolean; size: number }) {
   return (
-    <View accessibilityLabel={live ? 'temps réel' : 'horaire théorique'}>
+    <View accessibilityLabel={live ? t('now.live') : t('now.scheduled')}>
       <Icon name="rss-line" size={size} color={live ? '#4ade80' : '#9ca3af'} />
     </View>
   );
 }
 
-/** "Arrivée 12 min avant Algorithmique" / "Arrivée 5 min après le début de Algorithmique". */
+/** "Arrives 12 min before Algorithmique" / "Arrives 5 min after Algorithmique starts". */
 function arrivalNote(d: Departure, classStart: number, subject: string) {
   const margin = Math.round((classStart - d.arrival) / 60_000);
-  return margin >= 0 ? `Arrivée ${margin} min avant ${subject}` : `Arrivée ${-margin} min après le début de ${subject}`;
+  return margin >= 0 ? t('now.arriveBefore', { min: margin, subject }) : t('now.arriveAfter', { min: -margin, subject });
 }
 
 function NextLine({ next, now, compact }: { next: Item; now: number; compact: boolean }) {
@@ -579,14 +586,14 @@ function NextLine({ next, now, compact }: { next: Item; now: number; compact: bo
   if (compact) {
     return (
       <Text style={[styles.detail, styles.compactNext]} numberOfLines={1}>
-        Prochain cours dans {wait} · {what}
+        {t('now.nextIn', { wait, what })}
       </Text>
     );
   }
   return (
     <>
-      <Text style={styles.kicker}>PROCHAIN COURS</Text>
-      <Text style={styles.big}>dans {wait}</Text>
+      <Text style={styles.kicker}>{t('now.next')}</Text>
+      <Text style={styles.big}>{t('now.in', { wait })}</Text>
       <Text style={styles.title} numberOfLines={1}>
         {what}
       </Text>

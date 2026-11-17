@@ -12,6 +12,7 @@ import { OperationHistory } from '../../components/izly/OperationHistory';
 import { QrPayModal } from '../../components/izly/QrPayModal';
 import { useIzlyAccount } from '../../lib/izly/useIzlyAccount';
 import { BRAND, makeStyles, useAppTheme } from '../../lib/theme';
+import { t } from '../../lib/i18n';
 
 export default function PayScreen() {
   const styles = useStyles();
@@ -40,20 +41,17 @@ export default function PayScreen() {
           ) : undefined
         }
       >
-        <Text style={styles.title}>Payer</Text>
+        <Text style={styles.title}>{t('pay.title')}</Text>
 
         {!linked ? (
           <View style={styles.card}>
             <Icon name="wallet-3-line" size={40} color={BRAND.izly} />
             <Text style={styles.cardTitle}>Izly</Text>
-            <Text style={styles.hint}>
-              Connectez votre compte Izly pour voir votre solde, payer par QR code et consulter vos opérations. Vos
-              identifiants restent dans le trousseau de cet appareil.
-            </Text>
+            <Text style={styles.hint}>{t('pay.intro')}</Text>
             {error && <Text style={styles.error}>{error}</Text>}
             <PrimaryButton
               icon="login-box-line"
-              label="Se connecter à Izly"
+              label={t('pay.signIn')}
               color={BRAND.izly}
               onPress={() => router.push('/izly-login')}
             />
@@ -65,7 +63,7 @@ export default function PayScreen() {
             {counters && <Counters counters={counters} />}
             <OperationHistory operations={operations} />
             <View style={styles.footer}>
-              <OutlineButton icon="logout-box-r-line" label="Déconnecter Izly" danger onPress={unlink} />
+              <OutlineButton icon="logout-box-r-line" label={t('pay.signOut')} danger onPress={unlink} />
             </View>
             <QrPayModal
               visible={qrOpen}

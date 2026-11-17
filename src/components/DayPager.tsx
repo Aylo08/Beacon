@@ -5,6 +5,7 @@
 import { useLayoutEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { Platform, ScrollView, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { addDays } from '../lib/time';
+import { t } from '../lib/i18n';
 
 type Props = {
   day: string;
@@ -51,7 +52,7 @@ export function DayPager({ day, onDayChange, renderDay }: Props) {
           onScroll={onScroll}
           scrollEventThrottle={32}
           directionalLockEnabled
-          accessibilityHint="Balayez vers la gauche ou la droite pour changer de jour"
+          accessibilityHint={t('agenda.swipeHint')}
         >
           {days.map((d) => (
             <View key={d} style={{ width }}>

@@ -1,5 +1,7 @@
 // Date helpers pinned to Europe/Paris, whatever the device's time zone.
 // Days are handled as "YYYY-MM-DD" keys to avoid DST pitfalls.
+// Labels follow the app language (lib/i18n).
+import { getLang, intlLocale } from './i18n';
 
 const TZ = 'Europe/Paris';
 
@@ -33,44 +35,72 @@ export function weekday(day: string): number {
   return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
 }
 
-const labelFormatter = new Intl.DateTimeFormat('fr-FR', {
-  timeZone: 'UTC', // keys are calendar dates, render them as-is
-  weekday: 'long',
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-});
+/** Intl formatter for the current language (built once per language: slow on mobile). */
+function localized(options: Intl.DateTimeFormatOptions) {
+  const cache = new Map<string, Intl.DateTimeFormat>();
+  return () => {
+    const lang = getLang();
+    let f = cache.get(lang);
+    if (!f) cache.set(lang, (f = new Intl.DateTimeFormat(intlLocale(), { timeZone: 'UTC', ...options })));
+    return f;
+  };
+}
+
+// Latin and Ancient Greek have no Intl data: their labels are built by hand.
+type Classical = { weekdays: string[]; weekdaysShort: string[]; months: string[]; monthsOf: string[]; monthsShort: string[] };
+const CLASSICAL: Partial<Record<ReturnType<typeof getLang>, Classical>> = {
+  la: {
+    weekdays: ['Dies Solis', 'Dies Lunae', 'Dies Martis', 'Dies Mercurii', 'Dies Iovis', 'Dies Veneris', 'Dies Saturni'],
+    weekdaysShort: ['Sol.', 'Lun.', 'Mart.', 'Merc.', 'Iov.', 'Ven.', 'Sat.'],
+    months: ['Ianuarius', 'Februarius', 'Martius', 'Aprilis', 'Maius', 'Iunius', 'Iulius', 'Augustus', 'September', 'October', 'November', 'December'],
+    monthsOf: ['Ianuarii', 'Februarii', 'Martii', 'Aprilis', 'Maii', 'Iunii', 'Iulii', 'Augusti', 'Septembris', 'Octobris', 'Novembris', 'Decembris'],
+    monthsShort: ['Ian.', 'Feb.', 'Mart.', 'Apr.', 'Mai.', 'Iun.', 'Iul.', 'Aug.', 'Sept.', 'Oct.', 'Nov.', 'Dec.'],
+  },
+  grc: {
+    weekdays: ['Κυριακή', 'Δευτέρα', 'Τρίτη', 'Τετάρτη', 'Πέμπτη', 'Παρασκευή', 'Σάββατον'],
+    weekdaysShort: ['Κυρ.', 'Δευτ.', 'Τρ.', 'Τετ.', 'Πέμ.', 'Παρ.', 'Σάβ.'],
+    months: ['Ἰανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Ἀπρίλιος', 'Μάιος', 'Ἰούνιος', 'Ἰούλιος', 'Αὔγουστος', 'Σεπτέμβριος', 'Ὀκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'],
+    monthsOf: ['Ἰανουαρίου', 'Φεβρουαρίου', 'Μαρτίου', 'Ἀπριλίου', 'Μαΐου', 'Ἰουνίου', 'Ἰουλίου', 'Αὐγούστου', 'Σεπτεμβρίου', 'Ὀκτωβρίου', 'Νοεμβρίου', 'Δεκεμβρίου'],
+    monthsShort: ['Ἰαν.', 'Φεβ.', 'Μαρ.', 'Ἀπρ.', 'Μαΐ.', 'Ἰουν.', 'Ἰουλ.', 'Αὐγ.', 'Σεπ.', 'Ὀκτ.', 'Νοε.', 'Δεκ.'],
+  },
+};
+const classical = () => CLASSICAL[getLang()];
+const ymd = (day: string) => day.split('-').map(Number) as [number, number, number];
+
+/** Upper-cases the first letter (French labels are lower case). */
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+// Keys are calendar dates: formatters use UTC to render them as-is.
+const labelFormatter = localized({ weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
 export function dayLabel(day: string): string {
-  const [y, m, d] = day.split('-').map(Number);
-  const label = labelFormatter.format(new Date(Date.UTC(y, m - 1, d)));
-  return label.charAt(0).toUpperCase() + label.slice(1);
+  const [y, m, d] = ymd(day);
+  const c = classical();
+  if (c) return `${c.weekdays[weekday(day)]}, ${d} ${c.monthsOf[m - 1]} ${y}`;
+  return capitalize(labelFormatter().format(new Date(Date.UTC(y, m - 1, d))));
 }
 
 export const formatMinutes = (min: number) =>
   `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 
-const shortLabelFormatter = new Intl.DateTimeFormat('fr-FR', {
-  timeZone: 'UTC',
-  weekday: 'short',
-  day: 'numeric',
-  month: 'short',
-});
+const shortLabelFormatter = localized({ weekday: 'short', day: 'numeric', month: 'short' });
 
-/** "Lun. 9 nov." */
+/** "Lun. 9 nov." / "Mon 9 Nov" */
 export function shortDayLabel(day: string): string {
-  const [y, m, d] = day.split('-').map(Number);
-  const label = shortLabelFormatter.format(new Date(Date.UTC(y, m - 1, d)));
-  return label.charAt(0).toUpperCase() + label.slice(1);
+  const [y, m, d] = ymd(day);
+  const c = classical();
+  if (c) return `${c.weekdaysShort[weekday(day)]} ${d} ${c.monthsShort[m - 1]}`;
+  return capitalize(shortLabelFormatter().format(new Date(Date.UTC(y, m - 1, d))));
 }
 
-const monthFormatter = new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', month: 'long', year: 'numeric' });
+const monthFormatter = localized({ month: 'long', year: 'numeric' });
 
-/** "Novembre 2026" for a "YYYY-MM" key. */
+/** "Novembre 2026" / "November 2026" for a "YYYY-MM" key. */
 export function monthLabel(month: string): string {
   const [y, m] = month.split('-').map(Number);
-  const label = monthFormatter.format(new Date(Date.UTC(y, m - 1, 1)));
-  return label.charAt(0).toUpperCase() + label.slice(1);
+  const c = classical();
+  if (c) return `${c.months[m - 1]} ${y}`;
+  return capitalize(monthFormatter().format(new Date(Date.UTC(y, m - 1, 1))));
 }
 
 /** Shift a "YYYY-MM" key by `delta` months. */
@@ -103,11 +133,12 @@ export function parisEpoch(day: string, minutes: number): number {
   return guess - (shown - minutes) * 60_000;
 }
 
-const dateFormatter = new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long' });
+const dateFormatter = localized({ weekday: 'long', day: 'numeric', month: 'long' });
 
-/** "Lundi 16 novembre" */
+/** "Lundi 16 novembre" / "Monday 16 November" */
 export function dateLabel(day: string): string {
-  const [y, m, d] = day.split('-').map(Number);
-  const label = dateFormatter.format(new Date(Date.UTC(y, m - 1, d)));
-  return label.charAt(0).toUpperCase() + label.slice(1);
+  const [y, m, d] = ymd(day);
+  const c = classical();
+  if (c) return `${c.weekdays[weekday(day)]}, ${d} ${c.monthsOf[m - 1]}`;
+  return capitalize(dateFormatter().format(new Date(Date.UTC(y, m - 1, d))));
 }

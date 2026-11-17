@@ -10,6 +10,7 @@ import { makeStyles, useAppTheme } from '../lib/theme';
 import { formatMinutes, parisParts } from '../lib/time';
 import { useRealtime, useTimetable } from '../lib/useBus';
 import { useNow } from '../lib/useLive';
+import { t } from '../lib/i18n';
 
 export function BusWidget() {
   const focused = useIsFocused();
@@ -50,21 +51,21 @@ export function BusWidget() {
 
       {!lists ? (
         error ? (
-          <Text style={[styles.muted, styles.pad]}>Horaires indisponibles ({error})</Text>
+          <Text style={[styles.muted, styles.pad]}>{t('bus.unavailable', { error })}</Text>
         ) : (
           <ActivityIndicator color={colors.textMuted} style={styles.pad} />
         )
       ) : (
         <>
           <Section
-            title={`${campus} → Centre-ville (${CENTRE_STOP})`}
+            title={t('bus.toCentre', { campus, stop: CENTRE_STOP })}
             departures={lists.toCentre}
             now={now}
             lineColors={timetable!.lineColors}
           />
           <Section title={`${CENTRE_STOP} → ${campus}`} departures={lists.toCampus} now={now} lineColors={timetable!.lineColors} />
           <Text style={[styles.muted, styles.footer]}>
-            {rt ? 'Temps réel ORIZO · lignes C3 et 22' : 'Horaires théoriques (temps réel indisponible) · lignes C3 et 22'}
+            {rt ? t('bus.footerLive') : t('bus.footerScheduled')}
           </Text>
         </>
       )}
@@ -90,7 +91,7 @@ function Section({
         {title}
       </Text>
       {departures.length === 0 ? (
-        <Text style={styles.muted}>Aucun bus dans les prochaines 24 h</Text>
+        <Text style={styles.muted}>{t('bus.none24h')}</Text>
       ) : (
         departures.map((d) => <DepartureRow key={`${d.tripId}-${d.scheduled}`} d={d} now={now} lineColors={lineColors} />)
       )}
@@ -106,13 +107,18 @@ function DepartureRow({ d, now, lineColors }: { d: Departure; now: number; lineC
   const color = lineColors[d.line] ?? { bg: colors.primary, text: '#fff' };
   const mins = Math.max(0, Math.round((d.expected - now) / 60_000));
   const delay = Math.round((d.expected - d.scheduled) / 60_000);
-  const wait = mins === 0 ? 'Maintenant' : mins < 60 ? `${mins} min` : hhmm(d.expected);
+  const wait = mins === 0 ? t('bus.now') : mins < 60 ? t('duration.min', { m: mins }) : hhmm(d.expected);
 
   return (
     <View
       style={styles.row}
       accessible
-      accessibilityLabel={`Ligne ${d.line}, départ ${hhmm(d.expected)}${d.canceled ? ', supprimé' : `, dans ${wait}`}, arrivée ${hhmm(d.arrival)}`}
+      accessibilityLabel={t('bus.a11y', {
+        line: d.line,
+        time: hhmm(d.expected),
+        status: d.canceled ? t('bus.a11yCanceled') : t('bus.a11yIn', { wait }),
+        arrival: hhmm(d.arrival),
+      })}
     >
       <View style={[styles.badge, { backgroundColor: color.bg }]}>
         <Text style={[styles.badgeText, { color: color.text }]}>{d.line}</Text>
@@ -122,11 +128,11 @@ function DepartureRow({ d, now, lineColors }: { d: Departure; now: number; lineC
           {hhmm(d.expected)}
           {delay !== 0 && !d.canceled && <Text style={styles.scheduled}> {hhmm(d.scheduled)}</Text>}
         </Text>
-        <Text style={styles.muted}>arrivée {hhmm(d.arrival)}</Text>
+        <Text style={styles.muted}>{t('bus.arrival', { time: hhmm(d.arrival) })}</Text>
       </View>
       <View style={styles.right}>
         {d.canceled ? (
-          <Text style={[styles.wait, { color: colors.danger }]}>Supprimé</Text>
+          <Text style={[styles.wait, { color: colors.danger }]}>{t('bus.canceled')}</Text>
         ) : (
           <Text style={styles.wait}>{wait}</Text>
         )}
@@ -134,7 +140,7 @@ function DepartureRow({ d, now, lineColors }: { d: Departure; now: number; lineC
           <View style={styles.status}>
             {d.realtime && <View style={[styles.dot, { backgroundColor: delay > 1 ? '#f59e0b' : '#22c55e' }]} />}
             <Text style={styles.muted}>
-              {!d.realtime ? 'théorique' : delay > 0 ? `+${delay} min` : delay < 0 ? `${delay} min` : "à l'heure"}
+              {!d.realtime ? t('bus.scheduled') : delay > 0 ? `+${delay} min` : delay < 0 ? `${delay} min` : t('bus.onTime')}
             </Text>
           </View>
         )}

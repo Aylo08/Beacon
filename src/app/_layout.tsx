@@ -1,15 +1,18 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { I18nProvider, t } from '../lib/i18n';
 import { SessionProvider } from '../lib/sessionContext';
 import { AppThemeProvider, useAppTheme } from '../lib/theme';
 
 export default function RootLayout() {
   return (
-    <AppThemeProvider>
-      <SessionProvider>
-        <ThemedStack />
-      </SessionProvider>
-    </AppThemeProvider>
+    <I18nProvider>
+      <AppThemeProvider>
+        <SessionProvider>
+          <ThemedStack />
+        </SessionProvider>
+      </AppThemeProvider>
+    </I18nProvider>
   );
 }
 
@@ -34,10 +37,10 @@ function ThemedStack() {
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Beacon' }} />
-        <Stack.Screen name="login" options={{ title: 'Connexion' }} />
-        <Stack.Screen name="izly-login" options={{ title: 'Connexion Izly' }} />
-        <Stack.Screen name="card" options={{ title: 'Carte étudiant' }} />
-        <Stack.Screen name="settings" options={{ title: 'Réglages' }} />
+        <Stack.Screen name="login" options={{ title: t('nav.login') }} />
+        <Stack.Screen name="izly-login" options={{ title: t('nav.izlyLogin') }} />
+        <Stack.Screen name="card" options={{ title: t('nav.card') }} />
+        <Stack.Screen name="settings" options={{ title: t('nav.settings') }} />
       </Stack>
     </ThemeProvider>
   );

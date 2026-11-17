@@ -13,6 +13,7 @@ import { ENT_CAS_LOGIN_URL } from '../lib/edt';
 import type { EntInfoUser } from '../lib/studentCard';
 import { allowOnly, trustedMessage } from '../lib/webview';
 import { makeStyles, useAppTheme } from '../lib/theme';
+import { t } from '../lib/i18n';
 
 const ENT_HOST = 'ent.univ-avignon.fr';
 const HOSTS = ['cas.univ-avignon.fr', ENT_HOST];
@@ -115,7 +116,7 @@ export function EntCardFetcher({
       {phase === 'fetching' && (
         <View style={[StyleSheet.absoluteFill, styles.overlay]}>
           <ActivityIndicator color={colors.textMuted} />
-          <Text style={styles.muted}>Récupération de la carte…</Text>
+          <Text style={styles.muted}>{t('card.fetching')}</Text>
         </View>
       )}
     </View>

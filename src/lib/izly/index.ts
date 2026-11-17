@@ -16,6 +16,7 @@ import {
   type RawCounter,
 } from './parse';
 import { clearIzlySession, izlyPage, izlyRequest, renewSession } from './session';
+import { t } from '../i18n';
 
 export * from './parse';
 export {
@@ -48,7 +49,7 @@ export const getCachedBalance = () => getJson<IzlyBalance>(BALANCE_KEY);
 
 export async function fetchIzlyBalance(): Promise<IzlyBalance> {
   const parsed = parseBalance(await izlyPage('/', (html) => parseBalance(html) != null));
-  if (!parsed) throw new Error('Solde introuvable sur la page Izly');
+  if (!parsed) throw new Error(t('izly.err.balance'));
   const balance = { ...parsed, fetchedAt: Date.now() };
   await setJson(BALANCE_KEY, balance);
   return balance;
@@ -126,17 +127,17 @@ export async function createIzlyQrCode(): Promise<IzlyQrCode> {
   if (expired(text)) {
     await renewSession();
     text = await post();
-    if (expired(text)) throw new Error('Izly a refusé la nouvelle session');
+    if (expired(text)) throw new Error(t('izly.err.newSession'));
   }
   let data: { images?: unknown; validityDate?: unknown };
   try {
     data = JSON.parse(text);
   } catch {
-    throw new Error('Réponse illisible d’Izly pour le QR code');
+    throw new Error(t('izly.err.qrUnreadable'));
   }
   const image = Array.isArray(data.images) ? data.images[0] : null;
   // Only accept base64 PNG data: it goes straight into an <Image> source.
-  if (typeof image !== 'string' || !/^[A-Za-z0-9+/=\s]+$/.test(image)) throw new Error('Izly n’a pas renvoyé de QR code');
+  if (typeof image !== 'string' || !/^[A-Za-z0-9+/=\s]+$/.test(image)) throw new Error(t('izly.err.noQr'));
   return {
     uri: `data:image/png;base64,${image.replace(/\s/g, '')}`,
     validUntil: typeof data.validityDate === 'string' ? parisDateTime(data.validityDate) : null,

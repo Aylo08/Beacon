@@ -6,6 +6,7 @@ import * as Brightness from 'expo-brightness';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Barcode } from './Barcode';
 import { Icon } from './Icon';
+import { t } from '../lib/i18n';
 
 /** Screen at full brightness while `active` (restored on close and when the app leaves the foreground). */
 export function useMaxBrightness(active: boolean) {
@@ -58,7 +59,7 @@ export function FullscreenBarcode({
       <Pressable
         onPress={onClose}
         accessibilityRole="button"
-        accessibilityLabel="Fermer le code-barres"
+        accessibilityLabel={t('card.closeBarcode')}
         style={{ flex: 1, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', gap: 20 }}
       >
         <View style={{ position: 'absolute', top: insets.top + 12, right: insets.right + 16 }}>

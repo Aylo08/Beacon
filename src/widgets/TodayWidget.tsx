@@ -8,6 +8,7 @@ import { titleField } from '../lib/events';
 import { usePersonalData } from '../lib/personalData';
 import { eventColors, makeStyles, useAppTheme } from '../lib/theme';
 import { formatMinutes, parisParts, shortDayLabel, todayKey } from '../lib/time';
+import { t } from '../lib/i18n';
 
 type Item = { event: RoomEvent; day: string; start: number; end: number; subject: string; room?: string };
 
@@ -63,10 +64,10 @@ export function TodayWidget() {
     return (
       <Pressable onPress={open} accessibilityRole="button" style={styles.empty}>
         {caption}
-        <Text style={styles.emptyTitle}>Pas de cours aujourd&apos;hui</Text>
+        <Text style={styles.emptyTitle}>{t('today.noClass')}</Text>
         {next && (
           <Text style={styles.muted}>
-            Prochain : {shortDayLabel(next.day)} à {formatMinutes(next.start)} · {next.subject}
+            {t('today.next', { day: shortDayLabel(next.day), time: formatMinutes(next.start), subject: next.subject })}
           </Text>
         )}
       </Pressable>
@@ -87,7 +88,7 @@ export function TodayWidget() {
             key={idx}
             onPress={open}
             accessibilityRole="button"
-            accessibilityLabel={`${formatMinutes(i.start)} à ${formatMinutes(i.end)}, ${i.subject}${i.room ? `, ${i.room}` : ''}${current ? ', en cours' : ''}`}
+            accessibilityLabel={`${t('common.timeRange', { start: formatMinutes(i.start), end: formatMinutes(i.end) })}, ${i.subject}${i.room ? `, ${i.room}` : ''}${current ? t('today.currentA11y') : ''}`}
             style={({ pressed }) => [styles.row, idx > 0 && styles.rowDivider, pressed && styles.pressed, done && styles.done]}
           >
             <View style={styles.time}>
@@ -108,12 +109,12 @@ export function TodayWidget() {
             </View>
             {current && (
               <View style={[styles.badge, { backgroundColor: colors.live }]}>
-                <Text style={styles.badgeText}>En cours · {i.end - nowMin} min</Text>
+                <Text style={styles.badgeText}>{t('today.current', { min: i.end - nowMin })}</Text>
               </View>
             )}
             {isNext && (
               <View style={[styles.badge, { backgroundColor: colors.moved }]}>
-                <Text style={styles.badgeText}>Dans {formatDelay(i.start - nowMin)}</Text>
+                <Text style={styles.badgeText}>{t('today.in', { delay: formatDelay(i.start - nowMin) })}</Text>
               </View>
             )}
           </Pressable>
@@ -123,7 +124,8 @@ export function TodayWidget() {
   );
 }
 
-const formatDelay = (min: number) => (min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')}`);
+const formatDelay = (min: number) =>
+  min < 60 ? t('duration.min', { m: min }) : t('duration.hours', { h: Math.floor(min / 60), mm: String(min % 60).padStart(2, '0') });
 
 const useStyles = makeStyles((c) => ({
   pad: { padding: 12 },

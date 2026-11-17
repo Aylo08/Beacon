@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { makeStyles } from '../lib/theme';
+import { t } from '../lib/i18n';
 
 type Props = { visible: boolean; onClose: () => void; children: ReactNode };
 
@@ -15,7 +16,7 @@ export function Sheet({ visible, onClose, children }: Props) {
   return (
     <Modal visible={visible} transparent animationType={wide ? 'fade' : 'slide'} onRequestClose={onClose}>
       <View style={[styles.backdrop, wide ? styles.center : styles.bottom]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Fermer" />
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel={t('common.close')} />
         <View style={[styles.card, wide ? styles.cardWide : [styles.cardSheet, { paddingBottom: insets.bottom + 12 }]]}>
           {children}
         </View>

@@ -7,6 +7,7 @@ import { barcodeValue, yearLabel, type StudentCard } from '../lib/studentCard';
 import { AvignonLogo } from './AvignonLogo';
 import { Barcode } from './Barcode';
 import { Icon } from './Icon';
+import { t } from '../lib/i18n';
 
 const INNER_W = 1828;
 const INNER_H = 1125;
@@ -38,7 +39,7 @@ export function StudentCardView({ card, width }: { card: StudentCard; width: num
     <View
       style={[styles.outer, { width, height: u(OUTER_H), borderRadius: u(84), padding: u(FRAME) }]}
       accessible
-      accessibilityLabel={`Carte étudiant de ${card.firstName} ${card.lastName}, numéro ${card.number}`}
+      accessibilityLabel={t('card.a11y', { name: `${card.firstName} ${card.lastName}`, number: card.number })}
     >
       <View style={[styles.inner, { borderRadius: u(64) }]}>
         <View style={[styles.abs, at(1321, 46)]}>

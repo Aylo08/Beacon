@@ -8,6 +8,7 @@
 //                         5: schedule_relationship (1 = SKIPPED) } } } }
 import { fetch } from 'expo/fetch';
 import { strFromU8 } from 'fflate';
+import { t } from './i18n';
 
 const RT_URL = 'https://api.maas-fr.cityway.fr/dataflow/horaire-tc-tr/download?provider=ORIZO&dataFormat=gtfs-rt';
 
@@ -144,6 +145,6 @@ export function decodeFeed(buf: Uint8Array): RealtimeFeed {
 
 export async function fetchRealtime(): Promise<RealtimeFeed> {
   const res = await fetch(RT_URL);
-  if (!res.ok) throw new Error(`Temps réel : HTTP ${res.status}`);
+  if (!res.ok) throw new Error(t('err.realtimeHttp', { status: res.status }));
   return decodeFeed(await res.bytes());
 }

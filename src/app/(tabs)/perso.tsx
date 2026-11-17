@@ -13,6 +13,7 @@ import type { RoomEvent } from '../../lib/edt';
 import { usePersonalData } from '../../lib/personalData';
 import { makeStyles, useAppTheme } from '../../lib/theme';
 import { addDays, dayLabel, mondayOf, parisParts, shortDayLabel, todayKey } from '../../lib/time';
+import { t } from '../../lib/i18n';
 
 const WIDE_BREAKPOINT = 768;
 
@@ -80,8 +81,8 @@ export default function PersonalScreen() {
         day={day}
         onDayChange={setDay}
         step={wide ? 7 : 1}
-        dateLabel={wide ? `Semaine du ${shortDayLabel(mondayOf(day))}` : shortDayLabel(day)}
-        dateA11yLabel={wide ? `Semaine du ${dayLabel(mondayOf(day))}` : dayLabel(day)}
+        dateLabel={wide ? t('perso.weekOf', { day: shortDayLabel(mondayOf(day)) }) : shortDayLabel(day)}
+        dateA11yLabel={wide ? t('perso.weekOf', { day: dayLabel(mondayOf(day)) }) : dayLabel(day)}
         live={live}
         onLive={goLive}
         onRefresh={reload}
@@ -93,24 +94,24 @@ export default function PersonalScreen() {
           onPress={() => setPickerOpen(true)}
           disabled={!favoris || favoris.length < 2}
           accessibilityRole="button"
-          accessibilityLabel={`Emploi du temps : ${favori?.name ?? 'personnel'}${favoris && favoris.length > 1 ? ', changer' : ''}`}
+          accessibilityLabel={`${t('perso.pickerA11y', { name: favori?.name ?? t('perso.personal') })}${favoris && favoris.length > 1 ? t('perso.change') : ''}`}
           style={styles.favoriButton}
         >
           <Icon name="calendar-2-line" size={14} color={colors.textSecondary} />
           <Text style={styles.favoriText} numberOfLines={1}>
-            {favori ? favori.name : 'Emploi du temps'}
+            {favori ? favori.name : t('perso.timetable')}
           </Text>
           {favoris && favoris.length > 1 && <Icon name="arrow-down-s-line" size={16} color={colors.textMuted} />}
         </Pressable>
         <Text style={styles.muted} numberOfLines={1}>
-          {events ? `${count} cours ${wide ? 'cette semaine' : 'ce jour'}` : 'chargement…'}
+          {events ? t(wide ? 'perso.countWeek' : 'perso.countDay', { count }) : t('perso.loading')}
         </Text>
       </View>
 
       <OptionSheet
         visible={pickerOpen}
-        title="Emploi du temps"
-        options={(favoris ?? []).map((f) => ({ value: String(f.id), label: f.name, detail: f.defaut ? 'par défaut' : undefined }))}
+        title={t('perso.timetable')}
+        options={(favoris ?? []).map((f) => ({ value: String(f.id), label: f.name, detail: f.defaut ? t('perso.default') : undefined }))}
         value={favori ? String(favori.id) : ''}
         onClose={() => setPickerOpen(false)}
         onSelect={(id) => {

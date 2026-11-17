@@ -26,6 +26,7 @@ import { placeEvents, type PlacedEvent } from '../lib/events';
 import { formatMinutes, parisParts, todayKey } from '../lib/time';
 import { eventColors, makeStyles, useAppTheme } from '../lib/theme';
 import type { RoomEventsState } from '../lib/useRoomEvents';
+import { t } from '../lib/i18n';
 
 export const DAY_START = 8 * 60;
 export const DAY_END = 20 * 60;
@@ -194,7 +195,7 @@ export function RoomTimeline({ rooms, day, getEvents, version, cursor, onCursorC
             ref={viewportRef}
             onLayout={measureViewport}
             style={styles.headerClip}
-            accessibilityLabel="Glisser pour déplacer le curseur horaire"
+            accessibilityLabel={t('rooms.dragCursor')}
             {...dragProps}
             {...hoverProps}
           >
@@ -236,13 +237,13 @@ export function RoomTimeline({ rooms, day, getEvents, version, cursor, onCursorC
                   status === 'busy' && styles.busy,
                   status === 'free' && styles.free,
                 ]}
-                accessibilityLabel={`${room.name}, ${status === 'busy' ? 'occupée' : status === 'free' ? 'libre' : 'chargement'}`}
+                accessibilityLabel={`${room.name}, ${status === 'busy' ? t('rooms.busy') : status === 'free' ? t('rooms.free') : t('common.loading')}`}
               >
                 <Text style={styles.roomName} numberOfLines={2} maxFontSizeMultiplier={1.2}>
                   {room.name}
                 </Text>
                 <Text style={styles.roomCode} numberOfLines={1} maxFontSizeMultiplier={1.2}>
-                  {state === 'error' ? 'Erreur de chargement' : room.code}
+                  {state === 'error' ? t('rooms.loadError') : room.code}
                 </Text>
               </View>
             );
@@ -263,7 +264,7 @@ export function RoomTimeline({ rooms, day, getEvents, version, cursor, onCursorC
           <Pressable
             style={[{ width: gridW }, IS_WEB && styles.pointer]}
             onPress={(e) => onCursorChange(minutesAt(eventX(e)))}
-            accessibilityLabel="Placer le curseur horaire"
+            accessibilityLabel={t('rooms.placeCursor')}
             {...hoverProps}
           >
             {/* Grid lines drawn once for the whole grid */}

@@ -7,6 +7,7 @@ import { clusterWidths, placeEvents, titleField, type PlacedEvent } from '../lib
 import { eventColors, makeStyles, useAppTheme } from '../lib/theme';
 import { formatMinutes, parisParts, shortDayLabel, todayKey } from '../lib/time';
 import { DAY_END, DAY_START } from './RoomTimeline';
+import { t } from '../lib/i18n';
 
 const HOUR_H = 56;
 const GUTTER_W = 46;
@@ -123,7 +124,7 @@ function EventBlock({ p, width, onPress }: { p: PlacedEvent; width: number; onPr
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${p.label}, ${formatMinutes(p.startMin)} à ${formatMinutes(p.endMin)}${room ? `, ${room}` : ''}`}
+      accessibilityLabel={`${p.label}, ${t('common.timeRange', { start: formatMinutes(p.startMin), end: formatMinutes(p.endMin) })}${room ? `, ${room}` : ''}`}
       style={({ pressed }) => [
         styles.block,
         {

@@ -7,6 +7,7 @@ import { addDays } from '../lib/time';
 import { IconButton } from './Buttons';
 import { CalendarSheet } from './CalendarSheet';
 import { Icon } from './Icon';
+import { t } from '../lib/i18n';
 
 type Props = {
   day: string;
@@ -34,7 +35,7 @@ export function DateBar({ day, onDayChange, dateLabel, dateA11yLabel, step = 1, 
         <Pressable
           onPress={() => onDayChange(addDays(day, -step))}
           accessibilityRole="button"
-          accessibilityLabel={week ? 'Semaine précédente' : 'Jour précédent'}
+          accessibilityLabel={week ? t('date.prevWeek') : t('date.prevDay')}
           style={[styles.navButton, styles.navLeft]}
         >
           <Icon name="arrow-left-s-line" size={20} color={colors.textSecondary} />
@@ -42,7 +43,7 @@ export function DateBar({ day, onDayChange, dateLabel, dateA11yLabel, step = 1, 
         <Pressable
           onPress={() => setCalendarOpen(true)}
           accessibilityRole="button"
-          accessibilityLabel={`${dateA11yLabel}, choisir une date`}
+          accessibilityLabel={t('date.pick', { date: dateA11yLabel })}
           style={styles.dateButton}
         >
           <Text style={styles.dateText} numberOfLines={1}>
@@ -52,7 +53,7 @@ export function DateBar({ day, onDayChange, dateLabel, dateA11yLabel, step = 1, 
         <Pressable
           onPress={() => onDayChange(addDays(day, step))}
           accessibilityRole="button"
-          accessibilityLabel={week ? 'Semaine suivante' : 'Jour suivant'}
+          accessibilityLabel={week ? t('date.nextWeek') : t('date.nextDay')}
           style={[styles.navButton, styles.navRight]}
         >
           <Icon name="arrow-right-s-line" size={20} color={colors.textSecondary} />
@@ -60,7 +61,7 @@ export function DateBar({ day, onDayChange, dateLabel, dateA11yLabel, step = 1, 
       </View>
       <LiveButton live={live} onPress={onLive} />
       <View style={styles.actions}>
-        <IconButton icon="refresh-line" label="Recharger" onPress={onRefresh} />
+        <IconButton icon="refresh-line" label={t('common.reload')} onPress={onRefresh} />
       </View>
 
       <CalendarSheet
@@ -84,7 +85,7 @@ function LiveButton({ live, onPress }: { live: boolean; onPress: () => void }) {
       onPress={onPress}
       disabled={live}
       accessibilityRole="button"
-      accessibilityLabel={live ? 'En direct' : "Revenir à l'heure actuelle"}
+      accessibilityLabel={live ? t('date.live') : t('date.backToNow')}
       accessibilityState={{ disabled: live, selected: live }}
       style={({ pressed }) => [styles.live, !live && styles.liveIdle, pressed && styles.livePressed]}
     >

@@ -15,6 +15,7 @@ import { useSession } from '../lib/sessionContext';
 import { saveStudentCard } from '../lib/studentCard';
 import { allowOnly, trustedMessage } from '../lib/webview';
 import { makeStyles, useAppTheme } from '../lib/theme';
+import { t } from '../lib/i18n';
 
 // On the CAS page, mark the fields for password AutoFill and report what the user submits so it can be saved in the
 // Keychain (only once the login succeeds) for silent re-login later.
@@ -140,7 +141,7 @@ export default function Login() {
           ) : (
             <>
               <ActivityIndicator color={colors.textMuted} />
-              {status === 'card' && <Text style={styles.muted}>Récupération de la carte étudiant…</Text>}
+              {status === 'card' && <Text style={styles.muted}>{t('card.fetchingStudent')}</Text>}
             </>
           )}
         </View>

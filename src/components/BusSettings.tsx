@@ -7,6 +7,7 @@ import { makeStyles, useAppTheme } from '../lib/theme';
 import { useTimetable } from '../lib/useBus';
 import { Icon } from './Icon';
 import { OptionSheet } from './OptionSheet';
+import { t } from '../lib/i18n';
 
 const NONE = '__none__';
 
@@ -19,7 +20,7 @@ export function BusSettings() {
   const { timetable, error } = useTimetable(open);
   const options = useMemo(
     () => [
-      { value: NONE, label: 'Aucun' },
+      { value: NONE, label: t('common.none') },
       ...(timetable ? busStops(timetable) : []).map((s) => ({ value: s.name, label: s.name, detail: s.lines.join(' · ') })),
     ],
     [timetable],
@@ -27,25 +28,25 @@ export function BusSettings() {
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.cardTitle}>Bus</Text>
+      <Text style={styles.cardTitle}>{t('busSettings.title')}</Text>
       <Pressable
         onPress={() => setOpen(true)}
         accessibilityRole="button"
-        accessibilityLabel={`Arrêt de départ : ${homeStop ?? 'aucun'}. Modifier`}
+        accessibilityLabel={t('busSettings.homeA11y', { stop: homeStop ?? t('busSettings.none') })}
         style={({ pressed }) => [styles.row, pressed && styles.pressed]}
       >
         <Icon name="map-pin-2-line" size={18} color={colors.primary} />
         <View style={styles.flex}>
-          <Text style={styles.label}>Mon arrêt (domicile)</Text>
-          <Text style={styles.hint}>Prochain C3 avant le premier cours et après le dernier</Text>
+          <Text style={styles.label}>{t('busSettings.home')}</Text>
+          <Text style={styles.hint}>{t('busSettings.homeHint')}</Text>
         </View>
         <Text style={styles.value} numberOfLines={1}>
-          {homeStop ?? 'Choisir'}
+          {homeStop ?? t('busSettings.choose')}
         </Text>
         <Icon name="arrow-right-s-line" size={20} color={colors.textMuted} />
       </Pressable>
 
-      <Text style={styles.label}>Arrêt Agroparc</Text>
+      <Text style={styles.label}>{t('busSettings.campusStop')}</Text>
       <View style={styles.segmented} accessibilityRole="radiogroup">
         {CAMPUS_STOPS.map((c) => {
           const selected = c === campusStop;
@@ -65,7 +66,7 @@ export function BusSettings() {
 
       <OptionSheet
         visible={open && !!timetable}
-        title="Mon arrêt (lignes C3 et 22)"
+        title={t('busSettings.picker')}
         options={options}
         value={homeStop ?? NONE}
         onSelect={(v) => {
@@ -74,7 +75,7 @@ export function BusSettings() {
         }}
         onClose={() => setOpen(false)}
       />
-      {open && !timetable && (error ? <Text style={styles.error}>Horaires indisponibles ({error})</Text> : <ActivityIndicator color={colors.textMuted} />)}
+      {open && !timetable && (error ? <Text style={styles.error}>{t('bus.unavailable', { error })}</Text> : <ActivityIndicator color={colors.textMuted} />)}
     </View>
   );
 }

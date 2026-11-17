@@ -15,6 +15,7 @@ import type { Credentials } from '../credentials';
 import { absorbCookies, cookieHeader, inputValue, sameJar, type CookieJar } from '../http';
 import { getJson, removeItem, setJson } from '../storage';
 import { errorText } from './parse';
+import { t } from '../i18n';
 
 export const IZLY_HOST = 'mon-espace.izly.fr';
 export const IZLY_ORIGIN = `https://${IZLY_HOST}`;
@@ -69,7 +70,7 @@ async function login({ username, password }: Credentials): Promise<CookieJar> {
   const page = await fetch(IZLY_LOGON_URL, { headers: { 'User-Agent': UA }, credentials: 'omit', redirect: 'manual' });
   let jar = absorbCookies({}, page);
   const token = inputValue(await page.text(), '__RequestVerificationToken');
-  if (!token) throw new Error(`Formulaire de connexion Izly illisible (HTTP ${page.status})`);
+  if (!token) throw new Error(t('izly.err.form', { status: page.status }));
 
   const res = await fetch(`${IZLY_ORIGIN}/Home/Logon`, {
     method: 'POST',
@@ -87,8 +88,8 @@ async function login({ username, password }: Credentials): Promise<CookieJar> {
   jar = absorbCookies(jar, res);
   if (jar['.ASPXAUTH']) return jar;
   // The form comes back (200) when Izly rejects the identifier / code.
-  if (res.status === 200) throw new IzlyInvalidCredentialsError('Identifiant ou code secret Izly refusé');
-  throw new Error(`Réponse inattendue d’Izly (HTTP ${res.status})`);
+  if (res.status === 200) throw new IzlyInvalidCredentialsError(t('izly.err.credentials'));
+  throw new Error(t('izly.err.unexpected', { status: res.status }));
 }
 
 /** Logs in with `creds` and stores them with the new session. Throws IzlyInvalidCredentialsError. */
@@ -132,7 +133,7 @@ export type RequestOptions = {
 
 async function describe(res: Response) {
   const body = await res.text().catch(() => '');
-  const where = isLogonRedirect(res) ? 'redirection vers la connexion' : `HTTP ${res.status}`;
+  const where = isLogonRedirect(res) ? t('izly.err.loginRedirect') : `HTTP ${res.status}`;
   const msg = errorText(body);
   return msg ? `${where} — ${msg}` : where;
 }
@@ -158,7 +159,7 @@ async function send(path: string, jar: CookieJar, { method = 'GET', xhr, body, r
     e.detail = await describe(res);
     throw e;
   }
-  if (res.status !== 200) throw new Error(`Izly : ${await describe(res)} sur ${path}`);
+  if (res.status !== 200) throw new Error(t('izly.err.onPath', { detail: await describe(res), path }));
   // Sliding expiration: Izly may hand out a renewed .ASPXAUTH, keep it.
   if (res.headers.get('set-cookie')) await saveJar(absorbCookies(jar, res));
   return res;
@@ -180,7 +181,7 @@ async function withSession<T>(path: string, attempt: (jar: CookieJar) => Promise
   try {
     return await attempt(fresh);
   } catch (e) {
-    if (e instanceof SessionExpiredError) throw new Error(`Izly a refusé ${path} (${e.detail})`);
+    if (e instanceof SessionExpiredError) throw new Error(t('izly.err.refusedPath', { path, detail: e.detail }));
     throw e;
   }
 }
@@ -200,7 +201,7 @@ export function izlyPage(path: string, signedIn: (html: string) => boolean, opts
     const html = await (await send(path, jar, opts)).text();
     if (!signedIn(html)) {
       const e = new SessionExpiredError();
-      e.detail = `page inattendue${errorText(html) ? ` — ${errorText(html)}` : ''}`;
+      e.detail = `${t('izly.err.unexpectedPage')}${errorText(html) ? ` — ${errorText(html)}` : ''}`;
       throw e;
     }
     return html;

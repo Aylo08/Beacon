@@ -10,6 +10,7 @@ import { File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
 import type { RealtimeFeed } from './gtfsRt';
 import { addDays, parisParts, weekday } from './time';
+import { t } from './i18n';
 
 const GTFS_URL =
   'https://api.maas-fr.cityway.fr/dataflow/offre-tc/download?provider=ORIZO&dataFormat=GTFS&dataProfil=OPENDATA';
@@ -151,7 +152,7 @@ export function parseGtfs(zip: Uint8Array): Timetable {
     (target[id] ??= []).push(gtfsDate(get('date')));
   });
 
-  if (!kept.length) throw new Error('Aucun trajet C3/22 trouvé dans les horaires');
+  if (!kept.length) throw new Error(t('err.busNoTrips'));
   return { version: CACHE_VERSION, fetchedAt: Date.now(), lineColors, stopNames, trips: kept, calendar, added, removed };
 }
 
@@ -163,7 +164,7 @@ let loading: Promise<Timetable> | null = null;
 
 async function download(): Promise<Timetable> {
   const res = await fetch(GTFS_URL);
-  if (!res.ok) throw new Error(`Horaires : HTTP ${res.status}`);
+  if (!res.ok) throw new Error(t('err.busHttp', { status: res.status }));
   const tt = parseGtfs(await res.bytes());
   await cacheFile().write(JSON.stringify(tt));
   return tt;
