@@ -1,7 +1,7 @@
 // Bus preferences shared by the settings, the bus widget and the now bar:
-// the user's home stop (C3 / 22) and which Agroparc stop they use.
+// the user's home stop (any stop of the kept lines) and which Agroparc stop they use.
 import { useEffect } from 'react';
-import { CAMPUS_STOPS, type CampusStop } from './bus';
+import { CAMPUS_STOPS, canonicalStop, type CampusStop } from './bus';
 import { getPref, setPref } from './prefs';
 import { createStore } from './store';
 
@@ -20,7 +20,8 @@ function load() {
   loaded ??= Promise.all([getPref(HOME_KEY), getPref(CAMPUS_KEY)]).then(([home, campus]) => {
     const c = campus && (LEGACY[campus] ?? campus);
     set({
-      homeStop: home || null,
+      // Saved before St Lazare / Université were merged: use the merged name.
+      homeStop: home ? canonicalStop(home) : null,
       campusStop: (CAMPUS_STOPS as readonly string[]).includes(c ?? '') ? (c as CampusStop) : store.get().campusStop,
     });
   });

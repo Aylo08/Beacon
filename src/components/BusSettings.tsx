@@ -1,4 +1,4 @@
-// Settings: home bus stop (any C3 / 22 stop) and Agroparc stop (Grand Avignon / Montaigne).
+// Settings: home bus stop (any stop of the kept lines) and Agroparc stop (Grand Avignon / Montaigne).
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { busStops, CAMPUS_STOPS } from '../lib/bus';

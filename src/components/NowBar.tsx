@@ -22,7 +22,7 @@ import { normalizeSearch, titleField } from '../lib/events';
 import { usePersonalData } from '../lib/personalData';
 import { useSession } from '../lib/sessionContext';
 import { makeStyles, useAppTheme } from '../lib/theme';
-import { useDebug } from '../lib/debugOverride';
+import { useDebug, withDebugLimited } from '../lib/debugOverride';
 import { dateLabel, formatMinutes, parisParts, weekday } from '../lib/time';
 import { useRealtime, useTimetable } from '../lib/useBus';
 import { useAttendance, useNow } from '../lib/useLive';
@@ -386,10 +386,14 @@ function BusCard({
 }) {
   const styles = useStyles();
   const { colors } = useAppTheme();
+  const { limitedBuses } = useDebug();
   const deps = useMemo(
     // A few extra in case some are cancelled; cancelled buses aren't shown.
-    () => (timetable ? nextDepartures(timetable, rt, plan.from, plan.to, now, 6).filter((x) => !x.canceled).slice(0, 3) : null),
-    [timetable, rt, plan.from, plan.to, now],
+    () =>
+      timetable
+        ? withDebugLimited(nextDepartures(timetable, rt, plan.from, plan.to, now, 6).filter((x) => !x.canceled).slice(0, 3), limitedBuses)
+        : null,
+    [timetable, rt, plan.from, plan.to, now, limitedBuses],
   );
 
   const header = (
@@ -453,9 +457,13 @@ function CompactBus({
 }) {
   const styles = useStyles();
   const { colors } = useAppTheme();
+  const { limitedBuses } = useDebug();
   const deps = useMemo(
-    () => (timetable ? nextDepartures(timetable, rt, plan.from, plan.to, now, 4).filter((x) => !x.canceled).slice(0, 2) : null),
-    [timetable, rt, plan.from, plan.to, now],
+    () =>
+      timetable
+        ? withDebugLimited(nextDepartures(timetable, rt, plan.from, plan.to, now, 4).filter((x) => !x.canceled).slice(0, 2), limitedBuses)
+        : null,
+    [timetable, rt, plan.from, plan.to, now, limitedBuses],
   );
   const d = deps?.[0];
   const lineColor = d ? (timetable!.lineColors[d.line]?.bg ?? colors.accent) : colors.accent;
@@ -468,6 +476,7 @@ function CompactBus({
           <View style={[styles.lineBadgeSmall, { backgroundColor: colors.onAccent }]}>
             <Text style={[styles.lineTextSmall, { color: lineColor }]}>{d.line}</Text>
           </View>
+          {d.limited && <LimitedTag small />}
           <Text style={styles.compactBusText} numberOfLines={1}>
             {deps!.map((x) => eta(x, now, false)).join(' · ')} · {route}
           </Text>
@@ -502,6 +511,7 @@ function EtaRow({ first, later, now, lineColor }: { first: Departure; later: Dep
       <View style={[styles.lineBadge, { backgroundColor: colors.onAccent }]}>
         <Text style={[styles.lineText, { color: lineColor }]}>{first.line}</Text>
       </View>
+      {first.limited && <LimitedTag />}
       <Text style={styles.big}>{eta(first, now, true)}</Text>
       <LiveIcon live={first.realtime} size={16} />
     </>
@@ -513,6 +523,7 @@ function EtaRow({ first, later, now, lineColor }: { first: Departure; later: Dep
       onLayout={onLayout && ((e) => onLayout(e.nativeEvent.layout.width))}
     >
       <Text style={styles.laterText}>{eta(x, now, false)}</Text>
+      {x.limited && <LimitedTag small />}
       <LiveIcon live={x.realtime} size={12} />
     </View>
   );
@@ -562,6 +573,16 @@ function eta(d: Departure, now: number, long: boolean) {
   if (mins <= 0) return t('bus.now');
   if (mins >= 60) return long ? t('now.etaAt', { time: hhmm(d.expected) }) : hhmm(d.expected);
   return long ? t('now.etaIn', { min: mins }) : t('duration.min', { m: mins });
+}
+
+/** "Direct" / "Limited" tag of a limited-stop trip (C3 DIRECT). */
+function LimitedTag({ small }: { small?: boolean }) {
+  const styles = useStyles();
+  return (
+    <View style={[styles.limited, small && styles.limitedSmall]} accessibilityLabel={t('bus.limitedA11y')}>
+      <Text style={[styles.limitedText, small && styles.limitedTextSmall]}>{t('bus.limited')}</Text>
+    </View>
+  );
 }
 
 /** Realtime indicator: green when the time comes from the live feed, grey when scheduled only. */
@@ -669,5 +690,9 @@ const useStyles = makeStyles((c) => ({
   laterEta: { flexDirection: 'row', alignItems: 'center', gap: 3, marginLeft: 4 },
   laterText: { fontSize: 15, fontWeight: '700', color: c.onAccent, opacity: 0.85, fontVariant: ['tabular-nums'] },
   lineBadge: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
+  limited: { borderWidth: 1, borderColor: c.onAccent, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  limitedSmall: { borderRadius: 4, paddingHorizontal: 4, paddingVertical: 0 },
+  limitedText: { fontSize: 12, fontWeight: '800', color: c.onAccent },
+  limitedTextSmall: { fontSize: 11 },
   lineText: { fontSize: 15, fontWeight: '800' },
 }));

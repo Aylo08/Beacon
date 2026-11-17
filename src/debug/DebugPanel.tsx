@@ -3,7 +3,7 @@
 // classes / travel slots / holidays, with rooms mapped to campuses.
 import { Pressable, Text, View } from 'react-native';
 import type { RoomEvent } from '../lib/edt';
-import { setNowOverride, useDebug, type NowOverride } from '../lib/debugOverride';
+import { type NowOverride, setLimitedBuses, setNowOverride, useDebug } from '../lib/debugOverride';
 import { makeStyles } from '../lib/theme';
 import { addDays, parisEpoch, todayKey, weekday } from '../lib/time';
 
@@ -187,7 +187,7 @@ const SCENARIOS: Scenario[] = [
 
 export function DebugPanel() {
   const styles = useStyles();
-  const { override } = useDebug();
+  const { override, limitedBuses } = useDebug();
   return (
     <View style={styles.card}>
       <Text style={styles.title}>Debug · barre « maintenant »</Text>
@@ -202,6 +202,12 @@ export function DebugPanel() {
           />
         ))}
       </View>
+      <View style={styles.chips}>
+        <Chip label="Bus DIRECT" selected={limitedBuses} onPress={() => setLimitedBuses(!limitedBuses)} />
+      </View>
+      <Text style={styles.hint}>
+        « Bus DIRECT » marque un départ sur deux comme direct (widget Bus et barre « maintenant »).
+      </Text>
       <Text style={styles.hint}>
         Salles fictives : « {ROOM_AGROPARC} » (Agroparc) et « {ROOM_CENTRE} ». Le bus et l’affluence utilisent les vraies données à
         l’heure simulée.

@@ -1,4 +1,4 @@
-// "Bus": next C3 / 22 departures between Centre-ville (St Lazare) and the
+// "Bus": next departures (any kept line, C3 / 22 in practice) between Centre-ville (St Lazare / Université) and the
 // Agroparc campuses, with a Grand Avignon / Montaigne toggle. Realtime from the
 // ORIZO GTFS-RT feed (polled every 30 s while visible), else the timetable.
 import { useMemo } from 'react';
@@ -6,6 +6,7 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { useIsFocused } from 'expo-router';
 import { CAMPUS_STOPS, CENTRE_STOP, nextDepartures, type Departure, type Timetable } from '../lib/bus';
 import { setCampusStop, useBusPrefs } from '../lib/busPrefs';
+import { useDebug, withDebugLimited } from '../lib/debugOverride';
 import { makeStyles, useAppTheme } from '../lib/theme';
 import { formatMinutes, parisParts } from '../lib/time';
 import { useRealtime, useTimetable } from '../lib/useBus';
@@ -20,14 +21,15 @@ export function BusWidget() {
   const { timetable, error } = useTimetable(focused);
   const rt = useRealtime(focused);
   const now = useNow(15_000, focused);
+  const { limitedBuses } = useDebug();
 
   const lists = useMemo(
     () =>
       timetable && {
-        toCentre: nextDepartures(timetable, rt, campus, CENTRE_STOP, now),
-        toCampus: nextDepartures(timetable, rt, CENTRE_STOP, campus, now),
+        toCentre: withDebugLimited(nextDepartures(timetable, rt, campus, CENTRE_STOP, now), limitedBuses),
+        toCampus: withDebugLimited(nextDepartures(timetable, rt, CENTRE_STOP, campus, now), limitedBuses),
       },
-    [timetable, rt, campus, now],
+    [timetable, rt, campus, now, limitedBuses],
   );
 
   return (
@@ -105,6 +107,7 @@ function DepartureRow({ d, now, lineColors }: { d: Departure; now: number; lineC
   const styles = useStyles();
   const { colors } = useAppTheme();
   const color = lineColors[d.line] ?? { bg: colors.primary, text: '#fff' };
+  // Limited-stop trips ("DIRECT") show the label under the line number, in the badge.
   const mins = Math.max(0, Math.round((d.expected - now) / 60_000));
   const delay = Math.round((d.expected - d.scheduled) / 60_000);
   const wait = mins === 0 ? t('bus.now') : mins < 60 ? t('duration.min', { m: mins }) : hhmm(d.expected);
@@ -116,12 +119,13 @@ function DepartureRow({ d, now, lineColors }: { d: Departure; now: number; lineC
       accessibilityLabel={t('bus.a11y', {
         line: d.line,
         time: hhmm(d.expected),
-        status: d.canceled ? t('bus.a11yCanceled') : t('bus.a11yIn', { wait }),
+        status: `${d.canceled ? t('bus.a11yCanceled') : t('bus.a11yIn', { wait })}${d.limited ? t('bus.limitedA11y') : ''}`,
         arrival: hhmm(d.arrival),
       })}
     >
       <View style={[styles.badge, { backgroundColor: color.bg }]}>
         <Text style={[styles.badgeText, { color: color.text }]}>{d.line}</Text>
+        {d.limited && <Text style={[styles.limitedText, { color: color.text }]}>{t('bus.limited')}</Text>}
       </View>
       <View style={styles.times}>
         <Text style={[styles.time, d.canceled && styles.canceled]}>
@@ -162,6 +166,7 @@ const useStyles = makeStyles((c) => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   badge: { minWidth: 34, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6, alignItems: 'center' },
   badgeText: { fontSize: 13, fontWeight: '800' },
+  limitedText: { fontSize: 9, fontWeight: '700', marginTop: -1 },
   times: { flex: 1 },
   time: { fontSize: 15, fontWeight: '700', color: c.text, fontVariant: ['tabular-nums'] },
   scheduled: { fontSize: 12, fontWeight: '400', color: c.textFaint, textDecorationLine: 'line-through' },
