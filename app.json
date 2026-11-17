@@ -40,6 +40,14 @@
       "expo-secure-store",
       "expo-status-bar",
       [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "locationWhenInUsePermission": "Beacon utilise votre position uniquement quand vous appuyez sur « Me localiser », pour choisir l’arrêt de bus le plus proche."
+        }
+      ],
+      [
         "expo-localization",
         {
           "supportedLocales": {

@@ -1,13 +1,14 @@
 // Minimal cross-platform modal: centred card on wide screens, bottom sheet on phones.
 import type { ReactNode } from 'react';
-import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { makeStyles } from '../lib/theme';
 import { t } from '../lib/i18n';
 
-type Props = { visible: boolean; onClose: () => void; children: ReactNode };
+/** `avoidKeyboard`: lift the sheet above the keyboard (sheets with a text field). */
+type Props = { visible: boolean; onClose: () => void; children: ReactNode; avoidKeyboard?: boolean };
 
-export function Sheet({ visible, onClose, children }: Props) {
+export function Sheet({ visible, onClose, children, avoidKeyboard }: Props) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const wide = width >= 768;
@@ -15,12 +16,16 @@ export function Sheet({ visible, onClose, children }: Props) {
 
   return (
     <Modal visible={visible} transparent animationType={wide ? 'fade' : 'slide'} onRequestClose={onClose}>
-      <View style={[styles.backdrop, wide ? styles.center : styles.bottom]}>
+      <KeyboardAvoidingView
+        style={[styles.backdrop, wide ? styles.center : styles.bottom]}
+        behavior={avoidKeyboard && Platform.OS === 'ios' ? 'padding' : undefined}
+        enabled={!!avoidKeyboard}
+      >
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel={t('common.close')} />
         <View style={[styles.card, wide ? styles.cardWide : [styles.cardSheet, { paddingBottom: insets.bottom + 12 }]]}>
           {children}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

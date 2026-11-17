@@ -38,12 +38,12 @@ export type CampusStop = (typeof CAMPUS_STOPS)[number];
 
 /** Re-download the timetable after this long (the feed is published every few days). */
 const MAX_AGE_MS = 3 * 24 * 3600_000;
-const CACHE_VERSION = 3;
+const CACHE_VERSION = 5;
 
 /** [stop_id, seconds since the start of the service day (may exceed 24 h)], in stop order. */
 type StopTime = [string, number];
-/** `limited`: limited-stop service (the C3 "DIRECT" trips). */
-type BusTrip = { id: string; line: string; service: string; limited: boolean; stops: StopTime[] };
+/** `limited`: limited-stop service (the C3 "DIRECT" trips). `headsign`: destination, readable ("Porte de l'Oulle"). */
+type BusTrip = { id: string; line: string; service: string; limited: boolean; headsign: string; stops: StopTime[] };
 
 export type Timetable = {
   version: number;
@@ -51,6 +51,8 @@ export type Timetable = {
   lineColors: Record<string, { bg: string; text: string }>;
   /** stop_id → stop name (canonical, see canonicalStop), for the stops served by these lines. */
   stopNames: Record<string, string>;
+  /** Stop name → [latitude, longitude] (centre of its platforms). */
+  stopCoords: Record<string, [number, number]>;
   trips: BusTrip[];
   /** service_id → weekdays (Mon..Sun) and validity range (YYYY-MM-DD). */
   calendar: Record<string, { days: boolean[]; start: string; end: string }>;
@@ -102,6 +104,27 @@ function eachRow(text: string, row: (get: (col: string) => string, firstField: s
   }
 }
 
+/** Words kept as written in headsigns. */
+const KEEP_UPPER = new Set(['P+R', 'TGV', 'LEP', 'DB', 'CCI', 'IUT', 'CERI']);
+const LOWER_WORDS = new Set(['de', 'du', 'des', 'la', 'le', 'les', 'par', 'et', 'sur', 'en', 'aux', 'au']);
+
+/** "PORTE DE L'OULLE" → "Porte de l'Oulle", "DIRECT P+R AGROPARC" → "P+R Agroparc" (DIRECT is shown as a label). */
+export function formatHeadsign(raw: string): string {
+  const words = raw.replace(/^\s*DIRECT\s+/i, '').trim().split(/\s+/).filter(Boolean);
+  return words
+    .map((w, i) => {
+      if (KEEP_UPPER.has(w.toUpperCase())) return w.toUpperCase();
+      const lower = w.toLowerCase();
+      if (i > 0 && LOWER_WORDS.has(lower)) return lower;
+      // Capitalise after word starts, hyphens, dots and apostrophes ("saint-lazare", "a.frank", "buld'air"),
+      // except an elided article ("l'oulle" → "l'Oulle").
+      return lower.replace(/(^|[-.'’])(\p{L})/gu, (m, sep: string, ch: string, off: number) =>
+        off === 0 && i > 0 && /^[ld]['’]/.test(lower) ? m : sep + ch.toUpperCase(),
+      );
+    })
+    .join(' ');
+}
+
 const gtfsDate = (d: string) => `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`;
 const gtfsTime = (s: string) => {
   const [h, m, sec] = s.split(':').map(Number);
@@ -124,14 +147,21 @@ export function parseGtfs(zip: Uint8Array): Timetable {
   });
 
   const allStopNames = new Map<string, string>();
-  eachRow(text('stops.txt'), (get) => allStopNames.set(get('stop_id'), get('stop_name').trim()));
+  const allStopCoords = new Map<string, [number, number]>();
+  eachRow(text('stops.txt'), (get) => {
+    allStopNames.set(get('stop_id'), get('stop_name').trim());
+    const lat = Number(get('stop_lat'));
+    const lon = Number(get('stop_lon'));
+    if (lat && lon) allStopCoords.set(get('stop_id'), [lat, lon]);
+  });
 
-  const trips = new Map<string, { line: string; service: string; limited: boolean; stops: StopTime[]; seqs: number[] }>();
+  const trips = new Map<string, { line: string; service: string; limited: boolean; headsign: string; stops: StopTime[]; seqs: number[] }>();
   eachRow(text('trips.txt'), (get) => {
     const line = routes.get(get('route_id'));
     // Limited-stop trips are announced by their headsign ("DIRECT SAINT-LAZARE").
     const limited = /^\s*DIRECT\b/i.test(get('trip_headsign'));
-    if (line) trips.set(get('trip_id'), { line, service: get('service_id'), limited, stops: [], seqs: [] });
+    const headsign = formatHeadsign(get('trip_headsign'));
+    if (line) trips.set(get('trip_id'), { line, service: get('service_id'), limited, headsign, stops: [], seqs: [] });
   });
 
   // stop_times.txt is the big one (~6 MB): only split lines of relevant trips.
@@ -149,8 +179,24 @@ export function parseGtfs(zip: Uint8Array): Timetable {
   for (const [id, trip] of trips) {
     if (trip.stops.length < 2) continue;
     const order = trip.seqs.map((_, i) => i).sort((a, b) => trip.seqs[a] - trip.seqs[b]);
-    kept.push({ id, line: trip.line, service: trip.service, limited: trip.limited, stops: order.map((i) => trip.stops[i]) });
+    const stops = order.map((i) => trip.stops[i]);
+    // No headsign: the terminus.
+    const headsign = trip.headsign || canonicalStop(allStopNames.get(stops[stops.length - 1][0]) ?? '');
+    kept.push({ id, line: trip.line, service: trip.service, limited: trip.limited, headsign, stops });
   }
+
+  // Centre of each (canonical) stop's platforms.
+  const sums: Record<string, [number, number, number]> = {};
+  for (const [id, name] of Object.entries(stopNames)) {
+    const c = allStopCoords.get(id);
+    if (!c) continue;
+    const acc = (sums[name] ??= [0, 0, 0]);
+    acc[0] += c[0];
+    acc[1] += c[1];
+    acc[2]++;
+  }
+  const stopCoords: Timetable['stopCoords'] = {};
+  for (const [name, [lat, lon, n]] of Object.entries(sums)) stopCoords[name] = [lat / n, lon / n];
 
   const services = new Set(kept.map((t) => t.service));
   const calendar: Timetable['calendar'] = {};
@@ -170,7 +216,7 @@ export function parseGtfs(zip: Uint8Array): Timetable {
   });
 
   if (!kept.length) throw new Error(t('err.busNoTrips'));
-  return { version: CACHE_VERSION, fetchedAt: Date.now(), lineColors, stopNames, trips: kept, calendar, added, removed };
+  return { version: CACHE_VERSION, fetchedAt: Date.now(), lineColors, stopNames, stopCoords, trips: kept, calendar, added, removed };
 }
 
 // ---------- download + cache ----------
@@ -243,6 +289,8 @@ export type Departure = {
   canceled: boolean;
   /** Limited-stop service ("DIRECT"). */
   limited: boolean;
+  /** Where the bus goes ("Porte de l'Oulle"). */
+  headsign: string;
 };
 
 /** Stop names served by the kept lines, sorted, with the lines serving each. */
@@ -259,28 +307,32 @@ export function busStops(tt: Timetable): { name: string; lines: string[] }[] {
     .sort((a, b) => a.name.localeCompare(b.name, 'fr'));
 }
 
-/** Next `count` departures from stop `fromName` that later call at `toName` (any kept line). */
-export function nextDepartures(
-  tt: Timetable,
-  rt: RealtimeFeed | null,
-  fromName: string,
-  toName: string,
-  now: number,
-  count = 3,
-): Departure[] {
-  if (fromName === toName) return [];
+/** Distance in metres between two [lat, lon] points (haversine). */
+export function distanceM([lat1, lon1]: [number, number], [lat2, lon2]: [number, number]) {
+  const rad = Math.PI / 180;
+  const a =
+    Math.sin(((lat2 - lat1) * rad) / 2) ** 2 + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(((lon2 - lon1) * rad) / 2) ** 2;
+  return 2 * 6_371_000 * Math.asin(Math.sqrt(a));
+}
+
+/** The stop of `names` nearest to `here` (names without coordinates are ignored), or null. */
+export function nearestStop(tt: Timetable, names: string[], here: [number, number]): { name: string; distance: number } | null {
+  let best: { name: string; distance: number } | null = null;
+  for (const name of names) {
+    const c = tt.stopCoords[name];
+    if (!c) continue;
+    const distance = distanceM(here, c);
+    if (!best || distance < best.distance) best = { name, distance };
+  }
+  return best;
+}
+
+type Leg = { trip: BusTrip; dep: StopTime; arr: StopTime };
+
+/** Departures of `legs` (yesterday's, today's and tomorrow's services), realtime applied, soonest first. */
+function departuresOf(tt: Timetable, rt: RealtimeFeed | null, legs: Leg[], now: number, count: number): Departure[] {
   const today = parisParts(new Date(now)).day;
   const out: Departure[] = [];
-
-  // Per trip: first call at `from`, then the first call at `to` after it.
-  const legs: { trip: BusTrip; dep: StopTime; arr: StopTime }[] = [];
-  for (const trip of tt.trips) {
-    const i = trip.stops.findIndex(([id]) => tt.stopNames[id] === fromName);
-    if (i < 0) continue;
-    const j = trip.stops.findIndex(([id], k) => k > i && tt.stopNames[id] === toName);
-    if (j > 0) legs.push({ trip, dep: trip.stops[i], arr: trip.stops[j] });
-  }
-
   for (const day of [addDays(today, -1), today, addDays(today, 1)]) {
     const base = serviceDayStart(day);
     for (const { trip, dep, arr } of legs) {
@@ -307,8 +359,45 @@ export function nextDepartures(
         realtime: rtDep != null,
         canceled: !!update?.canceled || (!!update?.stops.has(dep[0]) && update.stops.get(dep[0]) === null),
         limited: trip.limited,
+        headsign: trip.headsign,
       });
     }
   }
   return out.sort((a, b) => a.expected - b.expected).slice(0, count);
+}
+
+/** Next `count` departures from stop `fromName` that later call at `toName` (any kept line). */
+export function nextDepartures(
+  tt: Timetable,
+  rt: RealtimeFeed | null,
+  fromName: string,
+  toName: string,
+  now: number,
+  count = 3,
+): Departure[] {
+  if (fromName === toName) return [];
+  // Per trip: first call at `from`, then the first call at `to` after it.
+  const legs: Leg[] = [];
+  for (const trip of tt.trips) {
+    const i = trip.stops.findIndex(([id]) => tt.stopNames[id] === fromName);
+    if (i < 0) continue;
+    const j = trip.stops.findIndex(([id], k) => k > i && tt.stopNames[id] === toName);
+    if (j > 0) legs.push({ trip, dep: trip.stops[i], arr: trip.stops[j] });
+  }
+  return departuresOf(tt, rt, legs, now, count);
+}
+
+/**
+ * Next `count` departures of every line from stop `name`, whatever their destination
+ * (arrival = terminus). Buses ending there aren't departures: a call counts only if
+ * the bus then goes on to another stop (so "Université → St Lazare" at the end of a
+ * trip, both CENTRE_STOP, is an arrival).
+ */
+export function stopDepartures(tt: Timetable, rt: RealtimeFeed | null, name: string, now: number, count = 6): Departure[] {
+  const legs: Leg[] = [];
+  for (const trip of tt.trips) {
+    const i = trip.stops.findIndex(([id], k) => tt.stopNames[id] === name && trip.stops.slice(k + 1).some(([n]) => tt.stopNames[n] !== name));
+    if (i >= 0) legs.push({ trip, dep: trip.stops[i], arr: trip.stops[trip.stops.length - 1] });
+  }
+  return departuresOf(tt, rt, legs, now, count);
 }

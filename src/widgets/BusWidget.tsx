@@ -1,11 +1,19 @@
-// "Bus": next departures (any kept line, C3 / 22 in practice) between Centre-ville (St Lazare / Université) and the
-// Agroparc campuses, with a Grand Avignon / Montaigne toggle. Realtime from the
-// ORIZO GTFS-RT feed (polled every 30 s while visible), else the timetable.
-import { useMemo } from 'react';
+// "Bus": next departures of every line from one stop, each with its
+// destination. The stop is picked from the whole network (searchable), or by
+// "Locate me": the nearest of the home stop, St Lazare / Université and the
+// Agroparc stop (chosen in the settings). The next bus to each of the two
+// campuses (St Lazare / Université, the Agroparc stop) is pinned first.
+// Realtime from the ORIZO GTFS-RT feed (polled every 30 s while visible), else
+// the timetable.
+import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { useIsFocused } from 'expo-router';
-import { CAMPUS_STOPS, CENTRE_STOP, nextDepartures, type Departure, type Timetable } from '../lib/bus';
-import { setCampusStop, useBusPrefs } from '../lib/busPrefs';
+import * as Location from 'expo-location';
+import { Icon } from '../components/Icon';
+import { StopPicker } from '../components/StopPicker';
+import { CENTRE_STOP, nearestStop, nextDepartures, stopDepartures, type Departure, type Timetable } from '../lib/bus';
+import type { RealtimeFeed } from '../lib/gtfsRt';
+import { setWidgetStop, useBusPrefs } from '../lib/busPrefs';
 import { useDebug, withDebugLimited } from '../lib/debugOverride';
 import { makeStyles, useAppTheme } from '../lib/theme';
 import { formatMinutes, parisParts } from '../lib/time';
@@ -13,45 +21,107 @@ import { useRealtime, useTimetable } from '../lib/useBus';
 import { useNow } from '../lib/useLive';
 import { t } from '../lib/i18n';
 
+/** Rows shown, pinned ones included. */
+const ROWS = 4;
+
+const sameDeparture = (a: Departure, b: Departure) => a.tripId === b.tripId && a.scheduled === b.scheduled;
+
+type Pinned = { to: string; departure: Departure };
+
+/** Departures from `from`: the next one to each of `targets` pinned first, then the others, ROWS in all. */
+function stopList(tt: Timetable, rt: RealtimeFeed | null, from: string, targets: string[], now: number) {
+  const pinned: Pinned[] = [];
+  for (const to of targets) {
+    const d = nextDepartures(tt, rt, from, to, now, 1)[0];
+    if (d) pinned.push({ to, departure: d });
+  }
+  const others = stopDepartures(tt, rt, from, now, ROWS + pinned.length)
+    .filter((d) => !pinned.some((p) => sameDeparture(p.departure, d)))
+    .slice(0, Math.max(0, ROWS - pinned.length));
+  return { pinned, others };
+}
+
+/** Current position: a recent fix if there is one (fast), else a fresh one. */
+async function currentPosition(): Promise<[number, number]> {
+  const pos =
+    (await Location.getLastKnownPositionAsync({ maxAge: 2 * 60_000, requiredAccuracy: 300 })) ??
+    (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
+  return [pos.coords.latitude, pos.coords.longitude];
+}
+
 export function BusWidget() {
   const focused = useIsFocused();
   const styles = useStyles();
   const { colors } = useAppTheme();
-  const { campusStop: campus } = useBusPrefs();
+  const { homeStop, campusStop, widgetStop } = useBusPrefs();
   const { timetable, error } = useTimetable(focused);
   const rt = useRealtime(focused);
   const now = useNow(15_000, focused);
   const { limitedBuses } = useDebug();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [locateError, setLocateError] = useState<string | null>(null);
 
-  const lists = useMemo(
-    () =>
-      timetable && {
-        toCentre: withDebugLimited(nextDepartures(timetable, rt, campus, CENTRE_STOP, now), limitedBuses),
-        toCampus: withDebugLimited(nextDepartures(timetable, rt, CENTRE_STOP, campus, now), limitedBuses),
-      },
-    [timetable, rt, campus, now, limitedBuses],
+  const stop = widgetStop ?? campusStop;
+  const list = useMemo(
+    () => timetable && stopList(timetable, rt, stop, [CENTRE_STOP, campusStop].filter((x) => x !== stop), now),
+    [timetable, rt, stop, campusStop, now],
   );
+
+  const locate = async () => {
+    if (!timetable || locating) return;
+    setLocating(true);
+    setLocateError(null);
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (!permission.granted) {
+        setLocateError(t('bus.locateDenied'));
+        return;
+      }
+      const candidates = [homeStop, CENTRE_STOP, campusStop].filter((x): x is string => !!x);
+      const best = nearestStop(timetable, candidates, await currentPosition());
+      if (best) setWidgetStop(best.name);
+      else setLocateError(t('bus.locateFailed'));
+    } catch {
+      setLocateError(t('bus.locateFailed'));
+    } finally {
+      setLocating(false);
+    }
+  };
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.segmented} accessibilityRole="radiogroup">
-        {CAMPUS_STOPS.map((c) => {
-          const selected = c === campus;
-          return (
-            <Pressable
-              key={c}
-              onPress={() => setCampusStop(c)}
-              accessibilityRole="radio"
-              accessibilityState={{ selected }}
-              style={[styles.segment, selected && styles.segmentSelected]}
-            >
-              <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>{c}</Text>
-            </Pressable>
-          );
-        })}
+      <View style={styles.toolbar}>
+        <Pressable
+          onPress={() => setPickerOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel={t('bus.stopA11y', { stop })}
+          style={({ pressed }) => [styles.stopButton, pressed && styles.pressed]}
+        >
+          <Icon name="map-pin-2-line" size={16} color={colors.textSecondary} />
+          <Text style={styles.stopText} numberOfLines={1}>
+            {stop}
+          </Text>
+          <Icon name="arrow-down-s-line" size={18} color={colors.textMuted} />
+        </Pressable>
+        <Pressable
+          onPress={locate}
+          disabled={!timetable || locating}
+          accessibilityRole="button"
+          accessibilityLabel={t('bus.locate')}
+          accessibilityState={{ busy: locating, disabled: !timetable }}
+          style={({ pressed }) => [styles.locateButton, (pressed || !timetable) && styles.pressed]}
+        >
+          {locating ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <Icon name="focus-3-line" size={20} color={colors.primary} />
+          )}
+        </Pressable>
       </View>
+      {locateError && <Text style={styles.error}>{locateError}</Text>}
 
-      {!lists ? (
+      {!list ? (
         error ? (
           <Text style={[styles.muted, styles.pad]}>{t('bus.unavailable', { error })}</Text>
         ) : (
@@ -59,44 +129,57 @@ export function BusWidget() {
         )
       ) : (
         <>
-          <Section
-            title={t('bus.toCentre', { campus, stop: CENTRE_STOP })}
-            departures={lists.toCentre}
-            now={now}
-            lineColors={timetable!.lineColors}
-          />
-          <Section title={`${CENTRE_STOP} → ${campus}`} departures={lists.toCampus} now={now} lineColors={timetable!.lineColors} />
-          <Text style={[styles.muted, styles.footer]}>
-            {rt ? t('bus.footerLive') : t('bus.footerScheduled')}
-          </Text>
+          <Departures list={list} limited={limitedBuses} now={now} lineColors={timetable!.lineColors} />
+          <Text style={[styles.muted, styles.footer]}>{rt ? t('bus.footerLive') : t('bus.footerScheduled')}</Text>
         </>
       )}
+
+      <StopPicker
+        visible={pickerOpen}
+        title={t('bus.chooseStop')}
+        value={stop}
+        timetable={timetable}
+        error={error}
+        onSelect={(name) => {
+          if (name) setWidgetStop(name);
+          setLocateError(null);
+          setPickerOpen(false);
+        }}
+        onClose={() => setPickerOpen(false)}
+      />
     </View>
   );
 }
 
-function Section({
-  title,
-  departures,
+function Departures({
+  list,
+  limited,
   now,
   lineColors,
 }: {
-  title: string;
-  departures: Departure[];
+  list: { pinned: Pinned[]; others: Departure[] };
+  /** Debug: mark departures as limited-stop. */
+  limited: boolean;
   now: number;
   lineColors: Timetable['lineColors'];
 }) {
   const styles = useStyles();
+  const n = list.pinned.length;
+  const all = withDebugLimited([...list.pinned.map((p) => p.departure), ...list.others], limited);
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle} numberOfLines={1}>
-        {title}
-      </Text>
-      {departures.length === 0 ? (
-        <Text style={styles.muted}>{t('bus.none24h')}</Text>
-      ) : (
-        departures.map((d) => <DepartureRow key={`${d.tripId}-${d.scheduled}`} d={d} now={now} lineColors={lineColors} />)
-      )}
+      {all.length === 0 && <Text style={styles.muted}>{t('bus.none24h')}</Text>}
+      {list.pinned.map((p, i) => (
+        <View key={p.to} style={styles.pinned}>
+          <Text style={styles.pinnedLabel} numberOfLines={1}>
+            {t('bus.pinnedTo', { stop: p.to })}
+          </Text>
+          <DepartureRow d={all[i]} now={now} lineColors={lineColors} />
+        </View>
+      ))}
+      {all.slice(n).map((d) => (
+        <DepartureRow key={`${d.tripId}-${d.scheduled}`} d={d} now={now} lineColors={lineColors} />
+      ))}
     </View>
   );
 }
@@ -117,7 +200,7 @@ function DepartureRow({ d, now, lineColors }: { d: Departure; now: number; lineC
       style={styles.row}
       accessible
       accessibilityLabel={t('bus.a11y', {
-        line: d.line,
+        line: `${d.line} → ${d.headsign}`,
         time: hhmm(d.expected),
         status: `${d.canceled ? t('bus.a11yCanceled') : t('bus.a11yIn', { wait })}${d.limited ? t('bus.limitedA11y') : ''}`,
         arrival: hhmm(d.arrival),
@@ -128,11 +211,13 @@ function DepartureRow({ d, now, lineColors }: { d: Departure; now: number; lineC
         {d.limited && <Text style={[styles.limitedText, { color: color.text }]}>{t('bus.limited')}</Text>}
       </View>
       <View style={styles.times}>
-        <Text style={[styles.time, d.canceled && styles.canceled]}>
+        <Text style={[styles.headsign, d.canceled && styles.canceled]} numberOfLines={1}>
+          {d.headsign}
+        </Text>
+        <Text style={[styles.muted, d.canceled && styles.canceled]}>
           {hhmm(d.expected)}
           {delay !== 0 && !d.canceled && <Text style={styles.scheduled}> {hhmm(d.scheduled)}</Text>}
         </Text>
-        <Text style={styles.muted}>{t('bus.arrival', { time: hhmm(d.arrival) })}</Text>
       </View>
       <View style={styles.right}>
         {d.canceled ? (
@@ -156,18 +241,30 @@ function DepartureRow({ d, now, lineColors }: { d: Departure; now: number; lineC
 const useStyles = makeStyles((c) => ({
   wrap: { padding: 12, gap: 12 },
   pad: { paddingVertical: 8 },
-  segmented: { flexDirection: 'row', backgroundColor: c.surfaceAlt, borderRadius: 10, padding: 3, gap: 3 },
-  segment: { flex: 1, alignItems: 'center', paddingVertical: 7, borderRadius: 8 },
-  segmentSelected: { backgroundColor: c.inverseBg },
-  segmentText: { fontSize: 13, color: c.textSecondary },
-  segmentTextSelected: { color: c.inverseText, fontWeight: '600' },
+  toolbar: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  stopButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: c.surfaceAlt,
+  },
+  stopText: { flex: 1, fontSize: 14, fontWeight: '600', color: c.text },
+  locateButton: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: c.surfaceAlt },
+  pressed: { opacity: 0.6 },
+  error: { fontSize: 12, color: c.danger },
   section: { gap: 6 },
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: c.textMuted, letterSpacing: 0.3 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   badge: { minWidth: 34, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6, alignItems: 'center' },
   badgeText: { fontSize: 13, fontWeight: '800' },
   limitedText: { fontSize: 9, fontWeight: '700', marginTop: -1 },
   times: { flex: 1 },
+  pinned: { gap: 4, padding: 8, marginHorizontal: -8, borderRadius: 10, backgroundColor: c.surfaceAlt },
+  pinnedLabel: { fontSize: 11, fontWeight: '700', color: c.primary, letterSpacing: 0.3 },
+  headsign: { fontSize: 15, fontWeight: '600', color: c.text },
   time: { fontSize: 15, fontWeight: '700', color: c.text, fontVariant: ['tabular-nums'] },
   scheduled: { fontSize: 12, fontWeight: '400', color: c.textFaint, textDecorationLine: 'line-through' },
   canceled: { textDecorationLine: 'line-through', color: c.textMuted },

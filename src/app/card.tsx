@@ -1,8 +1,9 @@
 // "Carte étudiant": shows the cached digital student card; signs in to the ENT
 // to fetch (or refresh) it when needed.
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, useWindowDimensions, View, Platform } from 'react-native';
+import { ActivityIndicator, Platform, Text, useWindowDimensions, View } from 'react-native';
 import { Stack } from 'expo-router';
+import { useHeaderHeight } from 'expo-router/react-navigation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconButton, PrimaryButton } from '../components/Buttons';
 import { EntCardFetcher } from '../components/EntCardFetcher';
@@ -17,6 +18,7 @@ export default function CardScreen() {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const headerHeight = useHeaderHeight();
   // undefined while reading the cache.
   const [card, setCard] = useState<StudentCard | null | undefined>(undefined);
   const [fetching, setFetching] = useState(false);
@@ -80,11 +82,14 @@ export default function CardScreen() {
 
   const cardWidth = Math.min(width - insets.left - insets.right - 32, 640);
   return (
-    <ScrollView
-      style={styles.flex}
-      // The native header is translucent on iOS: inset the content below it.
-      contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={[styles.content, { paddingBottom: (Platform.OS === 'ios' ? 0 : insets.bottom) + 24 }]}
+    // Not scrollable: everything fits, centred in the space below the header
+    // (translucent on iOS, so the content starts under it there).
+    <View
+      style={[
+        styles.flex,
+        styles.content,
+        { paddingTop: (Platform.OS === 'ios' ? headerHeight : 0) + 16, paddingBottom: insets.bottom + 16 },
+      ]}
     >
       {header}
       {card && <StudentCardView card={card} width={cardWidth} />}
@@ -105,13 +110,13 @@ export default function CardScreen() {
       ) : (
         <PrimaryButton icon="login-box-line" label={t('card.signInEnt')} onPress={startFetch} />
       )}
-    </ScrollView>
+    </View>
   );
 }
 
 const useStyles = makeStyles((c) => ({
   flex: { flex: 1, backgroundColor: c.bg },
-  content: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 16 },
+  content: { alignItems: 'center', justifyContent: 'center', gap: 16, paddingHorizontal: 16 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.bg },
   muted: { color: c.textMuted, fontSize: 13, textAlign: 'center' },
   error: { color: c.danger, fontSize: 14, textAlign: 'center' },
