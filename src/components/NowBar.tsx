@@ -3,6 +3,9 @@
 //  - class in progress → colour of its type, class · room, remaining-time bar;
 //  - no class today / weekend / public holiday → orange, "Bonne journée";
 //  - no class left today → night sky, "Bonne nuit", bus back to the home stop;
+//  - next class starts within 15 min (first class, after lunch; 10 min when
+//    waiting between classes) → colour of
+//    its type, class · room in big, the bus (if any) as a compact line;
 //  - between classes while the restaurants are open → red, Crous attendance;
 //  - otherwise (travel slot, before the first class, waiting) → grey: bus
 //    between campuses / from the home stop, else countdown to the next class.
@@ -13,7 +16,7 @@ import type { EdgeInsets } from 'react-native-safe-area-context';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { CENTRE_STOP, nextDepartures, type Departure, type Timetable } from '../lib/bus';
 import { useBusPrefs } from '../lib/busPrefs';
-import { campusOfRoom, isRestoOpen, RESTOS, restoForCampus, type Attendance } from '../lib/crous';
+import { campusOfRoom, isRestoOpen, RESTOS, restoForCampus, spansLunch, type Attendance } from '../lib/crous';
 import type { RoomEvent } from '../lib/edt';
 import { normalizeSearch, titleField } from '../lib/events';
 import { usePersonalData } from '../lib/personalData';
@@ -27,6 +30,10 @@ import { HeroBackground, type HeroMode } from './HeroBackground';
 import { Icon } from './Icon';
 
 const TICK_MS = 15_000;
+/** How long before a class the bar switches to announcing it: first class / end of lunch… */
+const SOON_MS = 15 * 60_000;
+/** …and when simply waiting between classes. */
+const SOON_WAITING_MS = 10 * 60_000;
 
 type Item = {
   start: number;
@@ -113,7 +120,8 @@ export function NowBar({ focused, insets }: { focused: boolean; insets: EdgeInse
   const { colors } = useAppTheme();
   const realNow = useNow(TICK_MS, focused);
   // Debug scenario: its fake clock keeps running from when it was picked.
-  const now = override ? override.now + (realNow - override.setAt) : realNow;
+  // (The clock ticks every TICK_MS: right after picking, realNow can still be older than setAt.)
+  const now = override ? override.now + Math.max(0, realNow - override.setAt) : realNow;
   const events = override ? override.events : data.events;
   const travel = override ? override.travel : data.travel;
   const holidays = override ? override.holidays : data.holidays;
@@ -129,6 +137,12 @@ export function NowBar({ focused, insets }: { focused: boolean; insets: EdgeInse
   const last = todays.at(-1);
   const beforeFirst = !!first && now < first.start;
   const afterLast = !!last && now >= last.end;
+  // Class about to start (today): announced in big, bus / lunch shrink to one line.
+  // Lunch break: the gap since the previous class overlaps the restaurants' hours.
+  const prevToday = [...todays].reverse().find((i) => i.end <= now);
+  const afterLunch = !!next && !!prevToday && spansLunch(prevToday.endMin, next.startMin);
+  const soonMs = beforeFirst || afterLunch || isRestoOpen(now) ? SOON_MS : SOON_WAITING_MS;
+  const soon = !current && next && next.day === today && next.start - now <= soonMs ? next : null;
   const holidayToday = (holidays ?? []).some((h) => Date.parse(h.start) <= now && now < Date.parse(h.end));
 
   // Travel slot: previous class (ended around its start) → next class (starts around its end).
@@ -164,12 +178,13 @@ export function NowBar({ focused, insets }: { focused: boolean; insets: EdgeInse
     }
   }
   // Lunch only between classes (on campus): before the first / after the last class, the bus wins.
-  const lunch = !current && !bus && !beforeFirst && !afterLast && isRestoOpen(now);
+  // Not either once the next class is about to start.
+  const lunch = !current && !soon && !bus && !beforeFirst && !afterLast && isRestoOpen(now);
 
   const loading = data.loading && !events;
   const mode: HeroMode = loading
     ? 'loading'
-    : current
+    : current || soon
       ? 'class'
       : holidayToday || todays.length === 0
         ? 'free'
@@ -187,7 +202,7 @@ export function NowBar({ focused, insets }: { focused: boolean; insets: EdgeInse
   const { attendance, error: crousError } = useAttendance(restoId, lunch && focused);
   // Bus + restaurants open at the same time: show both restaurants under the bus.
   // Not at the end of the day: you're heading home, the restaurants don't matter.
-  const busAndLunch = !!bus && bus.kind !== 'home' && isRestoOpen(now);
+  const busAndLunch = !!bus && bus.kind !== 'home' && !soon && isRestoOpen(now);
   const restoA = useAttendance(busAndLunch ? RESTOS[0].id : null, busAndLunch && focused);
   const restoB = useAttendance(busAndLunch ? RESTOS[1].id : null, busAndLunch && focused);
 
@@ -220,6 +235,29 @@ export function NowBar({ focused, insets }: { focused: boolean; insets: EdgeInse
           <View style={[styles.fill, { width: `${progress * 100}%` }]} />
         </View>
         <Text style={styles.detail}>Reste {formatDuration((current.end - now) / 60000)}</Text>
+      </View>
+    );
+  } else if (soon) {
+    const wait = formatDuration((soon.start - now) / 60000);
+    content = (
+      <View accessibilityLabel={`Prochain cours dans ${wait} : ${soon.subject}${soon.room ? `, salle ${soon.room}` : ''}`}>
+        <Text style={styles.kicker}>
+          DANS {wait.toUpperCase()}
+          {soon.type ? ` · ${soon.type.toUpperCase()}` : ''} · {hhmm(soon.start)}
+        </Text>
+        <Text style={styles.title} numberOfLines={2}>
+          {soon.subject}
+        </Text>
+        {soon.room && (
+          <View style={styles.row}>
+            <Icon name="map-pin-2-line" size={18} color={colors.onAccent} />
+            <Text style={styles.room} numberOfLines={1}>
+              {soon.room}
+            </Text>
+          </View>
+        )}
+        {bus && <CompactBus plan={bus} timetable={timetable} error={busError} rt={rt} now={now} />}
+        {needsHomeStop && <HomeStopHint />}
       </View>
     );
   } else if (mode === 'free') {
@@ -287,7 +325,7 @@ export function NowBar({ focused, insets }: { focused: boolean; insets: EdgeInse
 
   return (
     <View style={[styles.hero, { paddingTop: insets.top + 10, paddingLeft: insets.left + 16, paddingRight: insets.right + 16 }]}>
-      <HeroBackground mode={mode} classType={current?.type} />
+      <HeroBackground mode={mode} classType={(current ?? soon)?.type} />
       <View style={styles.inner}>
         <View style={styles.dateRow}>
           <Text style={styles.date}>{dateLabel(today)}</Text>
@@ -389,6 +427,51 @@ function BusCard({
         </Text>
       )}
     </>
+  );
+}
+
+/** One-line bus: "🚌 C3 6 min · 14 min · St Lazare → Agroparc" (when a class is about to start). */
+function CompactBus({
+  plan,
+  timetable,
+  error,
+  rt,
+  now,
+}: {
+  plan: BusPlan;
+  timetable: Timetable | null;
+  error: string | null;
+  rt: Parameters<typeof nextDepartures>[1];
+  now: number;
+}) {
+  const styles = useStyles();
+  const { colors } = useAppTheme();
+  const deps = useMemo(
+    () => (timetable ? nextDepartures(timetable, rt, plan.from, plan.to, now, 4).filter((x) => !x.canceled).slice(0, 2) : null),
+    [timetable, rt, plan.from, plan.to, now],
+  );
+  const d = deps?.[0];
+  const lineColor = d ? (timetable!.lineColors[d.line]?.bg ?? colors.accent) : colors.accent;
+  const route = `${plan.from} → ${plan.to}`;
+  return (
+    <View style={[styles.row, styles.compactBus]}>
+      <Icon name="bus-line" size={14} color={colors.onAccent} />
+      {d ? (
+        <>
+          <View style={[styles.lineBadgeSmall, { backgroundColor: colors.onAccent }]}>
+            <Text style={[styles.lineTextSmall, { color: lineColor }]}>{d.line}</Text>
+          </View>
+          <Text style={styles.compactBusText} numberOfLines={1}>
+            {deps!.map((x) => eta(x, now, false)).join(' · ')} · {route}
+          </Text>
+          <LiveIcon live={d.realtime} size={12} />
+        </>
+      ) : (
+        <Text style={styles.compactBusText} numberOfLines={1}>
+          {deps ? `Aucun bus · ${route}` : error ? `Horaires indisponibles · ${route}` : `… · ${route}`}
+        </Text>
+      )}
+    </View>
   );
 }
 
@@ -532,6 +615,17 @@ const useStyles = makeStyles((c) => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   kicker: { fontSize: 11, fontWeight: '700', letterSpacing: 0.6, color: c.onAccent, opacity: 0.8, flexShrink: 1 },
   title: { fontSize: 16, fontWeight: '700', color: c.onAccent },
+  room: { fontSize: 22, fontWeight: '800', color: c.onAccent, flexShrink: 1 },
+  compactBus: {
+    gap: 6,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  compactBusText: { fontSize: 13, fontWeight: '600', color: c.onAccent, opacity: 0.9, flexShrink: 1, fontVariant: ['tabular-nums'] },
+  lineBadgeSmall: { borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
+  lineTextSmall: { fontSize: 12, fontWeight: '800' },
   greeting: { fontSize: 18, fontWeight: '800', color: c.onAccent },
   big: { fontSize: 24, fontWeight: '800', color: c.onAccent, fontVariant: ['tabular-nums'] },
   detail: { fontSize: 13, color: c.onAccent, opacity: 0.9 },

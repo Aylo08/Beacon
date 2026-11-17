@@ -15,7 +15,7 @@ import {
   type OperationKind,
   type RawCounter,
 } from './parse';
-import { clearIzlySession, izlyRequest, renewSession } from './session';
+import { clearIzlySession, izlyPage, izlyRequest, renewSession } from './session';
 
 export * from './parse';
 export {
@@ -47,7 +47,7 @@ export async function clearIzly() {
 export const getCachedBalance = () => getJson<IzlyBalance>(BALANCE_KEY);
 
 export async function fetchIzlyBalance(): Promise<IzlyBalance> {
-  const parsed = parseBalance(await (await izlyRequest('/')).text());
+  const parsed = parseBalance(await izlyPage('/', (html) => parseBalance(html) != null));
   if (!parsed) throw new Error('Solde introuvable sur la page Izly');
   const balance = { ...parsed, fetchedAt: Date.now() };
   await setJson(BALANCE_KEY, balance);

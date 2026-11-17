@@ -107,6 +107,37 @@ const SCENARIOS: Scenario[] = [
     },
   },
   {
+    label: '1er cours dans 10 min',
+    build: () => {
+      const d = weekdayKey();
+      return { now: parisEpoch(d, h(8, 20)), events: [ev(d, h(8, 30), h(10), 'Algorithmique', ROOM_AGROPARC, 'TD')], travel: [], holidays: [] };
+    },
+  },
+  {
+    label: 'Fin du déjeuner',
+    build: () => {
+      const d = weekdayKey();
+      return {
+        now: parisEpoch(d, h(13, 50)),
+        events: [ev(d, h(10), h(11, 30), 'Réseaux', ROOM_AGROPARC), ev(d, h(14), h(16), 'Systèmes', ROOM_AGROPARC, 'TP')],
+        travel: [],
+        holidays: [],
+      };
+    },
+  },
+  {
+    label: 'Fin d’attente',
+    build: () => {
+      const d = weekdayKey();
+      return {
+        now: parisEpoch(d, h(15, 52)),
+        events: [ev(d, h(8), h(10), 'Maths', ROOM_AGROPARC), ev(d, h(16), h(18), 'Physique', ROOM_AGROPARC, 'TP')],
+        travel: [],
+        holidays: [],
+      };
+    },
+  },
+  {
     label: 'Fin de journée + resto',
     build: () => {
       const d = weekdayKey();

@@ -164,12 +164,12 @@ async function send(path: string, jar: CookieJar, { method = 'GET', xhr, body, r
   return res;
 }
 
-/** Authenticated request, signing in again once if the session expired. */
-export async function izlyRequest(path: string, opts: RequestOptions = {}) {
+/** Runs `attempt` with the session, signing in again once if the session expired. */
+async function withSession<T>(path: string, attempt: (jar: CookieJar) => Promise<T>): Promise<T> {
   const jar = await getJar();
   if (jar?.['.ASPXAUTH']) {
     try {
-      return await send(path, jar, opts);
+      return await attempt(jar);
     } catch (e) {
       if (!(e instanceof SessionExpiredError)) throw e;
     }
@@ -178,9 +178,31 @@ export async function izlyRequest(path: string, opts: RequestOptions = {}) {
   const latest = await getJar();
   const fresh = latest?.['.ASPXAUTH'] && latest['.ASPXAUTH'] !== jar?.['.ASPXAUTH'] ? latest : await renewSession();
   try {
-    return await send(path, fresh, opts);
+    return await attempt(fresh);
   } catch (e) {
     if (e instanceof SessionExpiredError) throw new Error(`Izly a refusé ${path} (${e.detail})`);
     throw e;
   }
+}
+
+/** Authenticated request, signing in again once if the session expired. */
+export function izlyRequest(path: string, opts: RequestOptions = {}) {
+  return withSession(path, (jar) => send(path, jar, opts));
+}
+
+/**
+ * Authenticated page, as text. After a long idle time Izly can answer a page
+ * with 200 but without the signed-in content (no redirect): `signedIn(html)`
+ * false is then treated like an expired session (silent sign-in, one retry).
+ */
+export function izlyPage(path: string, signedIn: (html: string) => boolean, opts: RequestOptions = {}) {
+  return withSession(path, async (jar) => {
+    const html = await (await send(path, jar, opts)).text();
+    if (!signedIn(html)) {
+      const e = new SessionExpiredError();
+      e.detail = `page inattendue${errorText(html) ? ` — ${errorText(html)}` : ''}`;
+      throw e;
+    }
+    return html;
+  });
 }

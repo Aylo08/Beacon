@@ -24,6 +24,9 @@ export function isRestoOpen(nowMs: number) {
   return wd >= 1 && wd <= 5 && minutes >= OPEN_FROM && minutes < OPEN_UNTIL;
 }
 
+/** Whether a gap between classes (Paris minutes of the day) overlaps the restaurants' hours: a lunch break. */
+export const spansLunch = (fromMin: number, toMin: number) => fromMin < OPEN_UNTIL && toMin > OPEN_FROM;
+
 export type Attendance = {
   /** Restaurant name, e.g. "RESTAURANT AGROPARC". */
   name: string;
