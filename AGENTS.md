@@ -39,3 +39,120 @@ Docs: https://docs.expo.dev/eas/index.md
 - If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
 - Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
 - Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+
+---
+
+# Beacon — project guide
+
+Beacon is a student app for **Université d'Avignon**: personal timetable, free rooms, buses, Crous
+restaurant attendance, digital student card and Izly payments. **Expo SDK 58 / React Native 0.88 /
+Expo Router**, iOS and Android (a web build is still configured but paused: new features are native-only).
+The project uses **npm** (`package-lock.json`), so use `npx`.
+
+Private maintainer notes (how the university services were integrated, personal setup) live in a
+gitignored `PRIVATE_AGENTS.md` on the maintainer's machine. Don't recreate it or commit it.
+
+## Working rules
+
+- **Git**: `main` = released code, `dev` = integration branch. Work on `dev` or on a feature branch
+  off `dev`; pull requests target **`dev`**. Never commit to or merge into `main` unless the
+  maintainer says so: **every push to `main` publishes a GitHub release** (see CI below).
+- Run `npx tsc --noEmit` and `npx expo lint` before declaring a task done. Lint includes the React
+  Compiler rules (no ref reads during render, no synchronous setState in effects).
+- **Never commit credentials, tokens, session tickets, personal data or signing keys** (`.env*.local`,
+  `*.jks`, `*.p12`… are gitignored). Test with your own account, keep tokens in memory only.
+- **Don't hammer university servers** (`*.univ-avignon.fr`): no scripted probing or load. Ask the
+  maintainer before adding a new endpoint.
+- **Privacy promises are user-facing text** (onboarding): credentials are typed on the official pages,
+  stored in the device keychain and only sent to the official services; location is never stored or
+  sent. Keep the text true if you change what the app sends.
+- Don't start or kill the dev server unless asked: the maintainer usually has one running.
+- **Never start `expo start` with `CI=1`**: it disables file watching and edits silently don't reload.
+
+## CI / releases
+
+`.github/workflows/android-release.yml` runs on every push to `main` (and manually): `npm ci` →
+`expo prebuild -p android --clean` → `./gradlew assembleRelease` (arm64-v8a + armeabi-v7a) → signed with
+the release keystore from repo secrets → GitHub release with `Beacon-<tag>.apk`.
+- Tag = `v<expo.version in app.json>` (or `v<version>-build.<run>` if the tag already exists): **bump
+  `expo.version` before merging a new version into `main`**.
+- Changelog = commit subjects since the previous `v*` tag → write clear, imperative commit subjects
+  (`feat: …`, `fix: …`, `ci: …`).
+- Android `versionCode` = workflow run number (env `BEACON_VERSION_CODE`, read in `app.config.ts`).
+- Pushes to `dev` don't build anything.
+
+## Features
+
+| Tab / screen | Route | |
+|---|---|---|
+| Accueil | `src/app/(tabs)/index.tsx` | Contextual "now bar" header (class in progress, next class, lunch, bus home…), student card button, editable widgets (Aujourd'hui, Resto U, Bus, Salles favorites). |
+| Mon EDT | `(tabs)/perso.tsx` | Timetable of the selected favourite: one day with swipe on phones, week grid on wide screens. |
+| Salles | `(tabs)/salles.tsx` | Room availability grid (rooms × 30-min slots) with a draggable time cursor, search, campus filter, pinned rooms. |
+| Payer | `(tabs)/pay.tsx` | Izly balance, QR payment, history. Tab hidden unless an Izly account is linked. |
+| Carte étudiant | `src/app/card.tsx` | Digital student card with barcode (cached offline). |
+| Réglages | `src/app/settings.tsx` | Theme, language, bus stops, Izly, logout; "Développement" section in dev builds only. |
+
+First launch shows the onboarding (`src/components/Onboarding.tsx`): university login → optional Izly
+login → preferences.
+
+## Code map
+
+```
+src/app/                 routes only (Expo Router). _layout.tsx: I18nProvider > AppThemeProvider > SessionProvider > Stack
+src/app/(tabs)/          tab screens; (tabs)/_layout.tsx gates on login + onboarding
+src/app/api/             web-only API routes (paused web build)
+src/components/          UI components (AgendaGrid, DayPager, RoomTimeline, NowBar, sheets, pickers, Buttons…)
+src/components/izly/     Payer tab components
+src/widgets/             home widgets + registry.ts
+src/debug/DebugPanel.tsx dev-only now-bar scenarios (fake clock / events)
+src/lib/                 logic: storage (keychain), store (createStore), prefs, session, edt*, events, time,
+                         theme, i18n/, izly/, bus + gtfsRt (buses), crous, studentCard, code128, webview, http
+scripts/gen-icons.py     regenerates src/components/Icon.tsx
+assets/icon-src/         app icon generator (Pillow)
+app.json / app.config.ts config; BEACON_PERSONAL_BUILD=1 → iOS bundle id with `.dev` suffix
+```
+
+## Conventions
+
+- **i18n** (`src/lib/i18n/`): 18 languages (16 follow the OS; Ancient Greek and Latin are a user choice in Réglages). `fr.ts` is the reference
+  (`as const`); every other file is `Record<TranslationKey, string>`, so a missing key fails `tsc`.
+  **Add every new string to all language files**, with the same `{placeholders}` as French. Use
+  `t('key', { param })` / `tn('key', n)`. Module-level strings must be lazy (functions), because the
+  language can change at runtime. University/Izly/Crous data, stop names and the debug panel aren't
+  translated. Dates go through the formatters in `src/lib/time.ts`.
+- **Times**: API times are UTC; always convert to **Europe/Paris** with `src/lib/time.ts` (DST-safe,
+  days as `YYYY-MM-DD` keys).
+- **Storage**: only `src/lib/storage.ts` imports `expo-secure-store` (keychain, `WHEN_UNLOCKED_THIS_DEVICE_ONLY`).
+  Keep values small; larger caches go to files in `Paths.document`. Preferences: `src/lib/prefs.ts`.
+- **Shared state outside React**: `createStore(initial)` from `src/lib/store.ts` (`useSyncExternalStore`).
+- **Theme**: `makeStyles((c) => ({…}))` from `src/lib/theme.tsx` → `useStyles()`; colours come from the
+  palette (light / OLED dark), never hard-coded per screen.
+- **WebViews** (login, student card, Izly) must use `allowOnly(req, HOSTS)` in `onShouldStartLoadWithRequest`
+  and `trustedMessage(e, [host])` for messages (`src/lib/webview.ts`).
+- **Widgets**: add a component in `src/widgets/`, register it in `registry.ts` (`title()` /
+  `description()` are functions returning `t(...)`).
+- **Icons**: Remix Icon (license allows UI use, **forbids use as app icon/logo**). `Icon.tsx` is generated:
+  edit `NAMES` in `scripts/gen-icons.py` and rerun it, don't edit `Icon.tsx` by hand. The app icon is
+  original artwork from `assets/icon-src/generate.py`.
+- **Debug code** stays behind `__DEV__` (Metro strips it from release bundles).
+- Tabs: `import { Tabs } from 'expo-router/js-tabs'` (JS tabs, so SVG icons work everywhere).
+- RN 0.88 typing: refs are `useRef<ComponentRef<typeof View>>`; `WebView` is typed as a function
+  component, so use the `injectedJavaScript` prop rather than a ref.
+
+## Gotchas
+
+- Expo Go doesn't work (native modules like `expo-file-system`, `expo-localization`, `expo-location`):
+  use a development build. After adding a native module or changing a config plugin, run
+  `npx expo prebuild --clean` and rebuild. If prebuild fails with ENOTEMPTY, delete `ios/` / `android/` first.
+- **Android dev builds reload when you type "r" twice quickly in a WebView** (e.g. the Izly email field):
+  React Native's double-R reload shortcut only ignores native text fields. Dev-only, not an app bug.
+- Phone can't reach Metro (hotspot / IPv6-only network): `npx expo start --tunnel`.
+- iOS stack headers are translucent: ScrollViews in stack screens need
+  `contentInsetAdjustmentBehavior="automatic"`. Header height: `useHeaderHeight` from `expo-router/react-navigation`.
+- iOS sticky ScrollView headers: RN replaces the sticky child's style, so wrap the header row in an extra `<View>`.
+- `react-native-svg`: don't put `accessible` on `<Svg>` (breaks on web).
+- `expo-location` adds "Always" permission strings by default; `app.json` disables them.
+- Bus timetable cache (`src/lib/bus.ts`): bump `CACHE_VERSION` whenever the cached shape changes.
+- Native Android builds need ~5–10 GB of free disk space.
+- No test runner: pure logic (`time.ts`, `events.ts`…) can be checked by copying it to a scratch folder and
+  running it with `node --experimental-strip-types` (stub Expo imports).
