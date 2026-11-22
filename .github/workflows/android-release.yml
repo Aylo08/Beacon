@@ -1,0 +1,119 @@
+# Builds a release APK on every push to main and publishes it as a GitHub release.
+#
+# - Tag: v<expo.version from app.json>. If that tag already exists (several merges without a
+#   version bump), the tag becomes v<version>-build.<run number>.
+# - Changelog: commit subjects since the previous release tag (whole history for the first one).
+# - Android versionCode = workflow run number (always increasing, so APKs update over each other).
+# - Signing: set the repo secrets ANDROID_KEYSTORE_BASE64 (base64 of the .jks), ANDROID_KEYSTORE_PASSWORD,
+#   ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD to sign with your own key. Without them the APK keeps
+#   the debug signature of the runner, which changes on every run: each release then has to be
+#   uninstalled before installing the next one.
+name: Android release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history + tags for the changelog
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Version and tag
+        id: version
+        run: |
+          VERSION=$(node -p "require('./app.json').expo.version")
+          TAG="v$VERSION"
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            TAG="v$VERSION-build.$GITHUB_RUN_NUMBER"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Generate native Android project
+        run: npx expo prebuild --platform android --clean --no-install
+        env:
+          BEACON_VERSION_CODE: ${{ github.run_number }}
+
+      - name: Build release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+
+      - name: Sign APK
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          APK="Beacon-$TAG.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "$APK"
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            APKSIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner
+            "$APKSIGNER" sign --ks "$RUNNER_TEMP/release.jks" --ks-pass env:KEYSTORE_PASSWORD \
+              --ks-key-alias "$KEY_ALIAS" --key-pass env:KEY_PASSWORD "$APK"
+            "$APKSIGNER" verify "$APK"
+            rm "$RUNNER_TEMP/release.jks"
+          else
+            echo "::warning::No signing secrets: the APK is debug-signed."
+          fi
+          echo "APK=$APK" >> "$GITHUB_ENV"
+
+      - name: Changelog
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          PREV=$(git tag --list 'v*' --sort=-creatordate | head -1)
+          {
+            echo "Beacon $VERSION (Android versionCode $GITHUB_RUN_NUMBER)"
+            echo
+            if [ -n "$PREV" ]; then
+              echo "## Changes since $PREV"
+              echo
+              git log --no-merges --pretty='- %s (%h)' "$PREV..HEAD"
+            else
+              echo "## Changes"
+              echo
+              git log --no-merges --pretty='- %s (%h)'
+            fi
+          } > notes.md
+          cat notes.md
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          gh release create "$TAG" "$APK" \
+            --target "$GITHUB_SHA" \
+            --title "Beacon $TAG" \
+            --notes-file notes.md
