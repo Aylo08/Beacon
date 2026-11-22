@@ -1,10 +1,12 @@
-// Live-updating hooks: a ticking clock and Crous attendance polling, both
-// paused while inactive (screen not focused, app in background).
+// Live-updating hooks: a ticking clock, Crous attendance and library occupancy
+// polling, all paused while inactive (screen not focused, app in background).
 import { useEffect, useState } from 'react';
 import { AppState } from 'react-native';
-import { fetchAttendance, type Attendance } from './crous';
+import { fetchAttendance } from './crous';
+import { fetchLibrary } from './libraries';
 
 const CROUS_REFRESH_MS = 5_000;
+const LIBRARY_REFRESH_MS = 5_000;
 
 /** Re-renders every `ms` while `active` and the app is in the foreground. */
 export function useNow(ms: number, active: boolean) {
@@ -30,24 +32,36 @@ export function useNow(ms: number, active: boolean) {
   return now;
 }
 
-/** Crous attendance for `restoId`, polled every 5 s while `active`. */
-export function useAttendance(restoId: string | null, active: boolean) {
-  const [data, setData] = useState<{ id: string; value: Attendance } | null>(null);
+/** `fetcher(key)` every `ms` while `active`: the latest value for `key` (null until it arrives) and the last error. */
+function usePolled<T>(key: string | null, fetcher: (key: string) => Promise<T>, ms: number, active: boolean) {
+  const [data, setData] = useState<{ key: string; value: T } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const tick = useNow(CROUS_REFRESH_MS, active && !!restoId);
+  const tick = useNow(ms, active && !!key);
   useEffect(() => {
-    if (!active || !restoId) return;
+    if (!active || !key) return;
     let cancelled = false;
-    fetchAttendance(restoId)
+    fetcher(key)
       .then((value) => {
         if (cancelled) return;
-        setData({ id: restoId, value });
+        setData({ key, value });
         setError(null);
       })
       .catch((e) => !cancelled && setError(String(e instanceof Error ? e.message : e)));
     return () => {
       cancelled = true;
     };
-  }, [restoId, active, tick]);
-  return { attendance: data?.id === restoId ? data.value : null, error };
+  }, [key, fetcher, active, tick]);
+  return { value: data?.key === key ? data.value : null, error };
+}
+
+/** Crous attendance for `restoId`, polled every 5 s while `active`. */
+export function useAttendance(restoId: string | null, active: boolean) {
+  const { value, error } = usePolled(restoId, fetchAttendance, CROUS_REFRESH_MS, active);
+  return { attendance: value, error };
+}
+
+/** Opening status and occupancy of library `id` (Affluences), polled every 5 s while `active`. */
+export function useLibrary(id: string, active: boolean) {
+  const { value, error } = usePolled(id, fetchLibrary, LIBRARY_REFRESH_MS, active);
+  return { status: value, error };
 }

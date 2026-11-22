@@ -3,6 +3,7 @@
 import type { ComponentType } from 'react';
 import type { IconName } from '../components/Icon';
 import { BusWidget } from './BusWidget';
+import { LibrariesWidget } from './LibrariesWidget';
 import { RestaurantsWidget } from './RestaurantsWidget';
 import { RoomsWidget } from './RoomsWidget';
 import { TodayWidget } from './TodayWidget';
@@ -30,6 +31,13 @@ export const WIDGETS: WidgetDef[] = [
     description: () => t('widget.restaurants.description'),
     icon: 'restaurant-line',
     Component: RestaurantsWidget,
+  },
+  {
+    id: 'libraries',
+    title: () => t('widget.libraries.title'),
+    description: () => t('widget.libraries.description'),
+    icon: 'book-open-line',
+    Component: LibrariesWidget,
   },
   {
     id: 'bus',
