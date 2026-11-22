@@ -230,9 +230,9 @@ export const en: Record<TranslationKey, string> = {
   'card.updated': 'Updated on {date} · available offline',
   'card.signInEnt': 'Sign in to the ENT',
   'card.fetching': 'Fetching the card…',
-  'card.fetchingStudent': 'Fetching the student card…',
   'card.a11y': 'Student card of {name}, number {number}',
   'card.closeBarcode': 'Close the barcode',
+  'card.photoUnavailable': 'Photo unavailable: the university’s photo server isn’t responding. Refresh the card later to get it.',
 
   // Login
   'login.webTitle': 'Avignon ENT credentials',

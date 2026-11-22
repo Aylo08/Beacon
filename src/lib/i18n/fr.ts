@@ -232,9 +232,9 @@ export const fr = {
   'card.updated': 'Mise à jour le {date} · disponible hors connexion',
   'card.signInEnt': 'Se connecter à l’ENT',
   'card.fetching': 'Récupération de la carte…',
-  'card.fetchingStudent': 'Récupération de la carte étudiant…',
   'card.a11y': 'Carte étudiant de {name}, numéro {number}',
   'card.closeBarcode': 'Fermer le code-barres',
+  'card.photoUnavailable': 'Photo indisponible : le serveur de photos de l’université ne répond pas. Actualisez la carte plus tard pour la récupérer.',
 
   // Login
   'login.webTitle': 'Identifiants ENT Avignon',

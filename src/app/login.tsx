@@ -1,21 +1,18 @@
 // Native login: show the real CAS page in a WebView and intercept the redirect
 // back to edt.univ-avignon.fr so we capture the ticket before that page uses it.
-// The same WebView (same CAS session) then goes through CAS again with the ENT
-// service, which signs in without asking for the password, to fetch the student card.
 // The submitted credentials are kept in the Keychain so an expired token can be
-// renewed silently (see sessionContext).
-import { useEffect, useRef, useState } from 'react';
+// renewed silently (see sessionContext), and so the student card can be fetched
+// in the background right after login (lib/studentCard.ts) without blocking here.
+import { useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { router } from 'expo-router';
-import { ENT_FETCH_SCRIPT, type EntMessage } from '../components/EntCardFetcher';
-import { CAS_LOGIN_URL, edt, ENT_CAS_LOGIN_URL, extractTicket } from '../lib/edt';
+import { CAS_LOGIN_URL, edt, extractTicket } from '../lib/edt';
 import { saveCredentials, type Credentials } from '../lib/credentials';
 import { useSession } from '../lib/sessionContext';
-import { saveStudentCard } from '../lib/studentCard';
+import { refreshStudentCard } from '../lib/studentCard';
 import { allowOnly, trustedMessage } from '../lib/webview';
 import { makeStyles, useAppTheme } from '../lib/theme';
-import { t } from '../lib/i18n';
 
 // On the CAS page, mark the fields for password AutoFill and report what the user submits so it can be saved in the
 // Keychain (only once the login succeeds) for silent re-login later.
@@ -38,37 +35,18 @@ const CAPTURE_CREDENTIALS = `(function () {
 true;`;
 
 const CAS_HOST = 'cas.univ-avignon.fr';
-const ENT_HOST = 'ent.univ-avignon.fr';
 /** Pages this WebView may show (the edt.univ-avignon.fr redirect is intercepted before loading). */
-const HOSTS = [CAS_HOST, ENT_HOST];
+const HOSTS = [CAS_HOST];
 
-/** Give up on the student card after this long: it can be fetched later from its screen. */
-const CARD_TIMEOUT_MS = 20_000;
-
-type Status = 'cas' | 'exchanging' | 'card' | { error: string };
+type Status = 'cas' | 'exchanging' | { error: string };
 
 export default function Login() {
   const handled = useRef(false);
-  const finished = useRef(false);
   const { signIn } = useSession();
   const styles = useStyles();
   const { colors } = useAppTheme();
   const [status, setStatus] = useState<Status>('cas');
-  const [uri, setUri] = useState(CAS_LOGIN_URL);
   const submitted = useRef<Credentials | null>(null);
-
-  const finish = () => {
-    if (finished.current) return;
-    finished.current = true;
-    if (router.canGoBack()) router.back();
-    else router.replace('/');
-  };
-
-  useEffect(() => {
-    if (status !== 'card') return;
-    const t = setTimeout(finish, CARD_TIMEOUT_MS);
-    return () => clearTimeout(t);
-  }, [status]);
 
   const onTicket = async (ticket: string) => {
     if (handled.current) return;
@@ -83,42 +61,26 @@ export default function Login() {
       setStatus({ error: String(e) });
       return;
     }
-    // Logged in. Reuse the CAS session for the ENT to cache the student card.
-    setStatus('card');
-    setUri(ENT_CAS_LOGIN_URL);
+    // Logged in. The student card is fetched in the background (needs the saved credentials).
+    refreshStudentCard().catch(() => {});
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
   };
 
-  const onMessage = async (e: WebViewMessageEvent) => {
-    // Credentials only from the CAS page, card data only from the ENT.
+  const onMessage = (e: WebViewMessageEvent) => {
     const cas = trustedMessage<{ type: 'credentials' } & Credentials>(e, [CAS_HOST]);
-    if (cas?.type === 'credentials') {
-      if (status === 'cas' && typeof cas.username === 'string' && typeof cas.password === 'string') {
-        submitted.current = { username: cas.username, password: cas.password };
-      }
-      return;
-    }
-    const msg = trustedMessage<EntMessage>(e, [ENT_HOST]);
-    if (!msg) return;
-    if (status !== 'card') return;
-    if (msg.type === 'card') {
-      await saveStudentCard(msg.info, msg.photo).catch(() => {});
-      finish();
-    } else if (msg.type === 'error' || msg.type === 'notSignedIn') {
-      finish(); // not blocking: the card screen can retry
+    if (cas?.type === 'credentials' && status === 'cas' && typeof cas.username === 'string' && typeof cas.password === 'string') {
+      submitted.current = { username: cas.username, password: cas.password };
     }
   };
 
   return (
     <View style={styles.flex}>
       <WebView
-        source={{ uri }}
+        source={{ uri: CAS_LOGIN_URL }}
         incognito // start from a clean CAS session each time
-        injectedJavaScript={CAPTURE_CREDENTIALS + ENT_FETCH_SCRIPT} // each only acts on its own host
+        injectedJavaScript={CAPTURE_CREDENTIALS}
         onMessage={onMessage}
-        onLoadEnd={(e) => {
-          // A CAS page that renders here (instead of redirecting) means SSO didn't apply.
-          if (status === 'card' && e.nativeEvent.url.startsWith(`https://${CAS_HOST}/`)) finish();
-        }}
         onShouldStartLoadWithRequest={(req) => {
           const ticket = extractTicket(req.url);
           if (ticket) {
@@ -139,10 +101,7 @@ export default function Login() {
           {typeof status === 'object' ? (
             <Text style={styles.error}>{status.error}</Text>
           ) : (
-            <>
-              <ActivityIndicator color={colors.textMuted} />
-              {status === 'card' && <Text style={styles.muted}>{t('card.fetchingStudent')}</Text>}
-            </>
+            <ActivityIndicator color={colors.textMuted} />
           )}
         </View>
       )}
@@ -154,5 +113,4 @@ const useStyles = makeStyles((c) => ({
   flex: { flex: 1, backgroundColor: c.bg },
   center: { alignItems: 'center', justifyContent: 'center', gap: 12, padding: 16, backgroundColor: c.bg },
   error: { color: c.danger },
-  muted: { color: c.textMuted, fontSize: 14 },
 }));
