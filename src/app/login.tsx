@@ -11,13 +11,14 @@ import { CAS_LOGIN_URL, edt, extractTicket } from '../lib/edt';
 import { saveCredentials, type Credentials } from '../lib/credentials';
 import { useSession } from '../lib/sessionContext';
 import { refreshStudentCard } from '../lib/studentCard';
-import { allowOnly, trustedMessage } from '../lib/webview';
+import { allowOnly, newMessageNonce, postScript, trustedMessage } from '../lib/webview';
 import { makeStyles, useAppTheme } from '../lib/theme';
 
 // On the CAS page, mark the fields for password AutoFill and report what the user submits so it can be saved in the
 // Keychain (only once the login succeeds) for silent re-login later.
-const CAPTURE_CREDENTIALS = `(function () {
+const captureCredentials = (nonce: string) => `(function () {
   if (location.hostname !== 'cas.univ-avignon.fr') return;
+  var post = ${postScript(nonce)};
   var form = document.querySelector('input[name="password"]') && document.querySelector('input[name="password"]').form;
   if (!form || form.__beacon) return;
   form.__beacon = true;
@@ -28,7 +29,7 @@ const CAPTURE_CREDENTIALS = `(function () {
   form.addEventListener('submit', function () {
     var u = form.querySelector('input[name="username"]'), p = form.querySelector('input[name="password"]');
     if (u && p && u.value && p.value) {
-      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'credentials', username: u.value, password: p.value }));
+      post({ type: 'credentials', username: u.value, password: p.value });
     }
   }, true);
 })();
@@ -47,6 +48,7 @@ export default function Login() {
   const { colors } = useAppTheme();
   const [status, setStatus] = useState<Status>('cas');
   const submitted = useRef<Credentials | null>(null);
+  const [nonce] = useState(newMessageNonce);
 
   const onTicket = async (ticket: string) => {
     if (handled.current) return;
@@ -68,7 +70,7 @@ export default function Login() {
   };
 
   const onMessage = (e: WebViewMessageEvent) => {
-    const cas = trustedMessage<{ type: 'credentials' } & Credentials>(e, [CAS_HOST]);
+    const cas = trustedMessage<{ type: 'credentials' } & Credentials>(e, [CAS_HOST], nonce);
     if (cas?.type === 'credentials' && status === 'cas' && typeof cas.username === 'string' && typeof cas.password === 'string') {
       submitted.current = { username: cas.username, password: cas.password };
     }
@@ -79,7 +81,7 @@ export default function Login() {
       <WebView
         source={{ uri: CAS_LOGIN_URL }}
         incognito // start from a clean CAS session each time
-        injectedJavaScript={CAPTURE_CREDENTIALS}
+        injectedJavaScript={captureCredentials(nonce)}
         onMessage={onMessage}
         onShouldStartLoadWithRequest={(req) => {
           const ticket = extractTicket(req.url);

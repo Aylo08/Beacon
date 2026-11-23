@@ -11,7 +11,7 @@ import { router } from 'expo-router';
 import { PrimaryButton } from '../components/Buttons';
 import type { Credentials } from '../lib/credentials';
 import { IZLY_HOST, IZLY_LOGON_URL, IZLY_ORIGIN, izlySignIn } from '../lib/izly';
-import { allowOnly, trustedMessage } from '../lib/webview';
+import { allowOnly, newMessageNonce, postScript, trustedMessage } from '../lib/webview';
 import { makeStyles, useAppTheme } from '../lib/theme';
 import { t } from '../lib/i18n';
 
@@ -25,9 +25,10 @@ const HIDE_CONSENT = `(function () {
 })();
 true;`;
 
-const PAGE_SCRIPT = `(function () {
+const pageScript = (nonce: string) => `(function () {
   if (location.hostname !== 'mon-espace.izly.fr' || window.__beacon) return;
   window.__beacon = true;
+  var post = ${postScript(nonce)};
 
   // Decline the cookie prompt once Tealium has rendered it (only necessary cookies).
   var tries = 0;
@@ -63,7 +64,7 @@ const PAGE_SCRIPT = `(function () {
 
   pin.form.addEventListener('submit', function () {
     if (user.value && pin.value) {
-      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'credentials', username: user.value.trim(), password: pin.value }));
+      post({ type: 'credentials', username: user.value.trim(), password: pin.value });
     }
   }, true);
 })();
@@ -88,6 +89,7 @@ export default function IzlyLogin() {
   const [attempt, setAttempt] = useState(0);
   const submitted = useRef<Credentials | null>(null);
   const handled = useRef(false);
+  const [nonce] = useState(newMessageNonce);
 
   const onLoggedIn = async () => {
     if (handled.current) return;
@@ -110,7 +112,7 @@ export default function IzlyLogin() {
   };
 
   const onMessage = (e: WebViewMessageEvent) => {
-    const msg = trustedMessage<{ type?: string; username?: unknown; password?: unknown }>(e, [IZLY_HOST]);
+    const msg = trustedMessage<{ type?: string; username?: unknown; password?: unknown }>(e, [IZLY_HOST], nonce);
     if (msg?.type === 'credentials' && typeof msg.username === 'string' && typeof msg.password === 'string') {
       submitted.current = { username: msg.username, password: msg.password };
     }
@@ -130,7 +132,7 @@ export default function IzlyLogin() {
         source={{ uri: IZLY_LOGON_URL }}
         incognito // clean Izly session (and no leftover cookies) each time
         injectedJavaScriptBeforeContentLoaded={HIDE_CONSENT}
-        injectedJavaScript={PAGE_SCRIPT}
+        injectedJavaScript={pageScript(nonce)}
         onMessage={onMessage}
         onShouldStartLoadWithRequest={(req) => {
           if (isHome(req.url)) {

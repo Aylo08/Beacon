@@ -18,7 +18,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { ENT_CAS_LOGIN_URL } from '../lib/edt';
 import type { EntInfoUser } from '../lib/studentCard';
-import { allowOnly, trustedMessage } from '../lib/webview';
+import { allowOnly, newMessageNonce, postScript, trustedMessage } from '../lib/webview';
 import { makeStyles, useAppTheme } from '../lib/theme';
 import { t } from '../lib/i18n';
 
@@ -33,10 +33,10 @@ const ENT_LIGHT_PAGE = `https://${ENT_HOST}/uPortal/beacon-card`;
 /** How long to wait for the script on the portal before moving to `ENT_LIGHT_PAGE`. */
 const LIGHT_PAGE_DELAY_MS = 5_000;
 
-export const ENT_FETCH_SCRIPT = `(function () {
+const entFetchScript = (nonce: string) => `(function () {
   if (location.hostname !== '${ENT_HOST}' || window.__beaconCard) return;
   window.__beaconCard = true;
-  var post = function (m) { window.ReactNativeWebView.postMessage(JSON.stringify(m)); };
+  var post = ${postScript(nonce)};
   // Keep the browser's own fetch: the page's scripts load polyfills after us.
   var nativeFetch = window.fetch.bind(window);
   post({ type: 'started' });
@@ -121,6 +121,8 @@ export function EntCardFetcher({
   // 'login': the user is on CAS (WebView visible); 'fetching': on the ENT, script running.
   const [phase, setPhase] = useState<'login' | 'fetching'>('login');
   const fallback = useEntPageFallback(ENT_CAS_LOGIN_URL);
+  const [nonce] = useState(newMessageNonce);
+  const script = entFetchScript(nonce);
 
   // Safety net if the page script never reports back (e.g. the ENT page changed).
   useEffect(() => {
@@ -135,10 +137,11 @@ export function EntCardFetcher({
 
   const onMessage = (e: WebViewMessageEvent) => {
     if (done.current) return;
-    const msg = trustedMessage<EntMessage>(e, [ENT_HOST]);
+    const msg = trustedMessage<EntMessage>(e, [ENT_HOST], nonce);
     if (!msg) return;
     fallback.onEntMessage();
     if (msg.type === 'card') {
+      if (typeof msg.info?.uid !== 'string') return; // malformed: keep waiting (the timeout reports it)
       done.current = true;
       onResult(msg.info);
     } else if (msg.type === 'started') {
@@ -156,8 +159,8 @@ export function EntCardFetcher({
       <WebView
         source={{ uri: fallback.uri }}
         incognito // same as the timetable login: don't keep a CAS session around
-        injectedJavaScriptBeforeContentLoaded={ENT_FETCH_SCRIPT}
-        injectedJavaScript={ENT_FETCH_SCRIPT}
+        injectedJavaScriptBeforeContentLoaded={script}
+        injectedJavaScript={script}
         onLoadStart={(e) => {
           if (!isEnt(e.nativeEvent.url)) setPhase('login');
           fallback.onLoadStart(e.nativeEvent.url);

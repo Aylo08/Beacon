@@ -105,6 +105,7 @@ export function loadStudentCard(): Promise<void> {
 
 /** Saves the ENT response and shows it at once; the photo follows in the background. */
 export async function saveStudentCard(info: EntInfoUser): Promise<void> {
+  if (typeof info?.uid !== 'string' || !info.uid) throw new Error('getInfoUser: unexpected response');
   const gen = generation;
   const fetchedAt = Date.now();
   const inscriptions = info.diplomes?.inscription ?? [];
@@ -144,7 +145,12 @@ async function downloadPhoto(url: string, card: StudentCard, gen: number) {
     try {
       const res = await fetch(url, { signal: ctrl.signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      await file.write(await res.bytes());
+      // An error page served with 200 must not replace a good cached photo.
+      if (!/^image\//i.test(res.headers.get('content-type') ?? 'image/')) throw new Error('not an image');
+      const bytes = await res.bytes();
+      // Logged out meanwhile: never write the previous user's photo back to disk.
+      if (gen !== generation) return;
+      await file.write(bytes);
       ok = true;
     } finally {
       clearTimeout(timer);
