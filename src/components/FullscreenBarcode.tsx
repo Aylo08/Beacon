@@ -69,7 +69,7 @@ export function FullscreenBarcode({
         <Barcode value={value} width={barWidth} height={barWidth * 0.4} />
         <Text style={{ fontSize: 22, letterSpacing: 3, color: '#111', fontVariant: ['tabular-nums'] }}>{value}</Text>
         <Text style={{ fontSize: 13, color: '#6b7280', position: 'absolute', bottom: insets.bottom + 24 }}>
-          Touchez l&apos;écran pour fermer
+          {t('card.tapToClose')}
         </Text>
       </Pressable>
     </Modal>

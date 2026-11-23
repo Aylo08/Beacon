@@ -185,6 +185,8 @@ export const en: Record<TranslationKey, string> = {
   'rooms.loadError': 'Loading error',
   'rooms.pin': 'Pin {room}',
   'rooms.unpin': 'Unpin {room}',
+  'rooms.header': 'Room',
+  'rooms.noMatch': 'No room matches the filters.',
 
   // Date bar / calendar
   'date.prevWeek': 'Previous week',
@@ -248,6 +250,7 @@ export const en: Record<TranslationKey, string> = {
   'card.fetching': 'Fetching the card…',
   'card.a11y': 'Student card of {name}, number {number}',
   'card.closeBarcode': 'Close the barcode',
+  'card.tapToClose': 'Tap the screen to close',
   'card.photoUnavailable': 'Photo unavailable: the university’s photo server isn’t responding. Refresh the card later to get it.',
 
   // Login

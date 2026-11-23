@@ -187,6 +187,8 @@ export const fr = {
   'rooms.loadError': 'Erreur de chargement',
   'rooms.pin': 'Épingler {room}',
   'rooms.unpin': 'Désépingler {room}',
+  'rooms.header': 'Salle',
+  'rooms.noMatch': 'Aucune salle ne correspond aux filtres.',
 
   // Date bar / calendar
   'date.prevWeek': 'Semaine précédente',
@@ -250,6 +252,7 @@ export const fr = {
   'card.fetching': 'Récupération de la carte…',
   'card.a11y': 'Carte étudiant de {name}, numéro {number}',
   'card.closeBarcode': 'Fermer le code-barres',
+  'card.tapToClose': 'Touchez l’écran pour fermer',
   'card.photoUnavailable': 'Photo indisponible : le serveur de photos de l’université ne répond pas. Actualisez la carte plus tard pour la récupérer.',
 
   // Login
