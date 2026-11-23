@@ -282,7 +282,7 @@ function DepartureRow({ d, now, lineColors }: { d: Departure; now: number; lineC
   const styles = useStyles();
   const { colors } = useAppTheme();
   const color = lineColors[d.line] ?? { bg: colors.primary, text: '#fff' };
-  // Limited-stop trips ("DIRECT") show the label under the line number, in the badge.
+  // Limited-stop trips ("DIRECT") get a bolt next to the line number, in the badge (the row's label spells it out).
   const mins = Math.max(0, Math.round((d.expected - now) / 60_000));
   const delay = Math.round((d.expected - d.scheduled) / 60_000);
   const wait = mins === 0 ? t('bus.now') : mins < 60 ? t('duration.min', { m: mins }) : hhmm(d.expected);
@@ -300,7 +300,7 @@ function DepartureRow({ d, now, lineColors }: { d: Departure; now: number; lineC
     >
       <View style={[styles.badge, { backgroundColor: color.bg }]}>
         <Text style={[styles.badgeText, { color: color.text }]}>{d.line}</Text>
-        {d.limited && <Text style={[styles.limitedText, { color: color.text }]}>{t('bus.limited')}</Text>}
+        {d.limited && <Icon name="flashlight-fill" size={12} color={color.text} />}
       </View>
       <View style={styles.times}>
         <Text style={[styles.headsign, d.canceled && styles.canceled]} numberOfLines={1}>
@@ -350,9 +350,17 @@ const useStyles = makeStyles((c) => ({
   error: { fontSize: 12, color: c.danger },
   section: { gap: 6 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  badge: { minWidth: 34, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6, alignItems: 'center' },
+  badge: {
+    minWidth: 34,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
   badgeText: { fontSize: 13, fontWeight: '800' },
-  limitedText: { fontSize: 9, fontWeight: '700', marginTop: -1 },
   times: { flex: 1 },
   pinned: { gap: 4, padding: 8, marginHorizontal: -8, borderRadius: 10, backgroundColor: c.surfaceAlt },
   pinnedLabel: { fontSize: 11, fontWeight: '700', color: c.primary, letterSpacing: 0.3 },
