@@ -24,6 +24,8 @@ class Reader {
   readonly end: number;
   pos: number;
   constructor(buf: Uint8Array, start = 0, end = buf.length) {
+    // A length prefix past the end of the buffer means a truncated / corrupt feed.
+    if (end > buf.length) throw new Error('GTFS-RT: truncated feed');
     this.buf = buf;
     this.pos = start;
     this.end = end;
@@ -32,15 +34,18 @@ class Reader {
     return this.pos >= this.end;
   }
   // Arithmetic instead of bit shifts: JS bitwise ops are 32-bit and timestamps aren't.
+  // Bounded: reading past the end (truncated feed) would otherwise loop forever on `undefined`.
   varint() {
     let result = 0;
     let mul = 1;
-    for (;;) {
+    for (let i = 0; i < 10; i++) {
+      if (this.pos >= this.end) throw new Error('GTFS-RT: truncated feed');
       const b = this.buf[this.pos++];
       result += (b & 0x7f) * mul;
       if (b < 0x80) return result;
       mul *= 128;
     }
+    throw new Error('GTFS-RT: invalid varint');
   }
   /** Next field: [fieldNumber, wireType]. */
   tag(): [number, number] {
@@ -56,6 +61,7 @@ class Reader {
   }
   string() {
     const len = this.varint();
+    if (this.pos + len > this.end) throw new Error('GTFS-RT: truncated feed');
     const s = strFromU8(this.buf.subarray(this.pos, this.pos + len));
     this.pos += len;
     return s;
