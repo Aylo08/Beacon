@@ -126,8 +126,6 @@ export const fr = {
   // Now bar
   'now.inProgress': 'EN COURS',
   'now.inProgressA11y': 'En cours : {subject}, fin dans {left}',
-  'now.left': 'Reste {left}',
-  'now.soon': 'DANS {wait}',
   'now.soonA11y': 'Prochain cours dans {wait} : {subject}',
   'now.soonRoomA11y': ', salle {room}',
   'now.goodDay': 'Bonne journée !',
@@ -149,8 +147,7 @@ export const fr = {
   'now.noBus24h': 'Aucun bus dans les prochaines 24 h',
   'now.noBus': 'Aucun bus',
   'now.busUnavailable': 'Horaires indisponibles',
-  'now.etaIn': 'dans {min} min',
-  'now.etaAt': 'à {time}',
+  'now.then': 'puis {times}',
   'now.live': 'temps réel',
   'now.scheduled': 'horaire théorique',
   'now.arriveBefore': 'Arrivée {min} min avant {subject}',

@@ -1,16 +1,19 @@
 // Home header ("now bar"): today's date and what matters right now, on a
-// background that follows the context (see HeroBackground):
-//  - class in progress → colour of its type, class · room, remaining-time bar;
+// background that follows the context (see HeroBackground). Class, restaurant
+// and bus views share one layout: text on the left, the key number on the right.
+//  - class in progress → colour of its type, subject, room · hours, ring of the time left;
 //  - no class today / weekend / public holiday → orange, "Bonne journée";
 //  - no class left today → night sky, "Bonne nuit", bus back to the home stop;
 //  - next class starts within 15 min (first class, after lunch; 10 min when
-//    waiting between classes) → colour of
-//    its type, class · room in big, the bus (if any) as a compact line;
-//  - between classes while the restaurants are open → red, Crous attendance;
-//  - otherwise (travel slot, before the first class, waiting) → grey: bus
-//    between campuses / from the home stop, else countdown to the next class.
+//    waiting between classes) → colour of its type, ring filling up until it
+//    starts (no bus: you're already on campus or on your way);
+//  - between classes while the restaurants are open → rose, Crous attendance (ring = share served);
+//  - otherwise (travel slot, before the first class, waiting) → teal: bus
+//    between campuses / from the home stop (route left, next departure right),
+//    else countdown to the next class.
 // When a bus is shown while the restaurants are open, both restaurants'
-// attendance is shown under it. A debug override (dev builds) can fake it all.
+// attendance is shown under it as chips. A strip of today's classes closes the
+// bar, except when a bus or the restaurant fills it. A debug override (dev builds) can fake it all.
 import { useEffect, useMemo, useState } from 'react';
 import type { EdgeInsets } from 'react-native-safe-area-context';
 import { ActivityIndicator, Text, View } from 'react-native';
@@ -26,6 +29,7 @@ import { useDebug, withDebugLimited } from '../lib/debugOverride';
 import { dateLabel, formatMinutes, parisParts, weekday } from '../lib/time';
 import { useRealtime, useTimetable } from '../lib/useBus';
 import { useAttendance, useNow } from '../lib/useLive';
+import Svg, { Circle } from 'react-native-svg';
 import { HeroBackground, type HeroMode } from './HeroBackground';
 import { Icon } from './Icon';
 import { t, type TranslationKey } from '../lib/i18n';
@@ -196,8 +200,10 @@ export function NowBar({ focused, insets }: { focused: boolean; insets: EdgeInse
             ? 'lunch'
             : 'waiting';
 
-  const { timetable, error: busError } = useTimetable(focused && !!bus);
-  const rt = useRealtime(focused && !!bus);
+  // Not fetched while a class is about to start: that view doesn't show the bus.
+  const showBus = !!bus && !soon;
+  const { timetable, error: busError } = useTimetable(focused && showBus);
+  const rt = useRealtime(focused && showBus);
 
   const lunchCampus = campusOf(lunchRef?.room);
   const restoId = lunch && lunchCampus !== undefined ? restoForCampus(lunchCampus) : null;
@@ -229,17 +235,19 @@ export function NowBar({ focused, insets }: { focused: boolean; insets: EdgeInse
     const progress = Math.min(1, Math.max(0, (now - current.start) / (current.end - current.start)));
     content = (
       <View accessibilityLabel={t('now.inProgressA11y', { subject: current.subject, left: formatDuration((current.end - now) / 60000) })}>
-        <Text style={styles.kicker}>
-          {t('now.inProgress')}
-          {current.type ? ` · ${current.type.toUpperCase()}` : ''}
-        </Text>
-        <Text style={styles.title} numberOfLines={1}>
-          {[current.subject, current.room].filter(Boolean).join(' · ')}
-        </Text>
-        <View style={styles.track}>
-          <View style={[styles.fill, { width: `${progress * 100}%` }]} />
+        <View style={styles.classRow}>
+          <View style={styles.classText}>
+            <Text style={styles.kicker}>
+              {t('now.inProgress')}
+              {current.type ? ` · ${current.type.toUpperCase()}` : ''}
+            </Text>
+            <Text style={styles.subject} numberOfLines={2}>
+              {current.subject}
+            </Text>
+            <ClassMeta item={current} />
+          </View>
+          <Ring progress={progress} label={formatDuration((current.end - now) / 60000)} />
         </View>
-        <Text style={styles.detail}>{t('now.left', { left: formatDuration((current.end - now) / 60000) })}</Text>
       </View>
     );
   } else if (soon) {
@@ -248,30 +256,30 @@ export function NowBar({ focused, insets }: { focused: boolean; insets: EdgeInse
       <View
         accessibilityLabel={`${t('now.soonA11y', { wait, subject: soon.subject })}${soon.room ? t('now.soonRoomA11y', { room: soon.room }) : ''}`}
       >
-        <Text style={styles.kicker}>
-          {t('now.soon', { wait: wait.toUpperCase() })}
-          {soon.type ? ` · ${soon.type.toUpperCase()}` : ''} · {hhmm(soon.start)}
-        </Text>
-        <Text style={styles.title} numberOfLines={2}>
-          {soon.subject}
-        </Text>
-        {soon.room && (
-          <View style={styles.row}>
-            <Icon name="map-pin-2-line" size={18} color={colors.onAccent} />
-            <Text style={styles.room} numberOfLines={1}>
-              {soon.room}
+        <View style={styles.classRow}>
+          <View style={styles.classText}>
+            <Text style={styles.kicker}>
+              {t('now.next')}
+              {soon.type ? ` · ${soon.type.toUpperCase()}` : ''}
             </Text>
+            <Text style={styles.subject} numberOfLines={2}>
+              {soon.subject}
+            </Text>
+            <ClassMeta item={soon} />
           </View>
-        )}
-        {bus && <CompactBus plan={bus} timetable={timetable} error={busError} rt={rt} now={now} />}
-        {needsHomeStop && <HomeStopHint />}
+          {/* Fills up as the class gets closer. */}
+          <Ring progress={1 - (soon.start - now) / soonMs} label={wait} />
+        </View>
       </View>
     );
   } else if (mode === 'free') {
     const wd = weekday(today);
     content = (
       <>
-        <Text style={styles.greeting}>{t('now.goodDay')}</Text>
+        <View style={styles.row}>
+          <Icon name="sun-line" size={22} color={colors.onAccent} />
+          <Text style={styles.greeting}>{t('now.goodDay')}</Text>
+        </View>
         <Text style={styles.detail}>
           {holidayToday ? t('now.holiday') : wd === 0 || wd === 6 ? t('now.weekend') : t('now.noClassToday')}
         </Text>
@@ -281,7 +289,10 @@ export function NowBar({ focused, insets }: { focused: boolean; insets: EdgeInse
     const late = nowMin >= 18 * 60 || nowMin < 5 * 60;
     content = (
       <>
-        <Text style={styles.greeting}>{late ? t('now.goodNight') : t('now.dayOver')}</Text>
+        <View style={styles.row}>
+          <Icon name={late ? 'moon-line' : 'check-line'} size={22} color={colors.onAccent} />
+          <Text style={styles.greeting}>{late ? t('now.goodNight') : t('now.dayOver')}</Text>
+        </View>
         <Text style={styles.detail}>{t('now.noMoreClasses')}</Text>
         {busBlock ? <View style={styles.section}>{busBlock}</View> : compactNext}
         {needsHomeStop && <HomeStopHint />}
@@ -290,41 +301,45 @@ export function NowBar({ focused, insets }: { focused: boolean; insets: EdgeInse
   } else if (bus) {
     content = busBlock;
   } else if (lunch) {
+    const percent = attendance && attendancePercent(attendance);
     content = (
       <>
-        <View style={styles.row}>
-          <Icon name="restaurant-line" size={14} color={colors.onAccent} />
-          <Text style={styles.kicker} numberOfLines={1}>
-            {t('now.resto')}
-            {attendance ? ` · ${attendance.name}` : ''}
-          </Text>
-        </View>
-        {attendance ? (
-          <>
+        <View style={styles.classRow}>
+          <View style={styles.classText}>
             <View style={styles.row}>
-              <Text style={styles.big}>{attendance.count}</Text>
-              <Text style={styles.detail}>
-                {attendance.capacity ? `/ ${attendance.capacity} ` : ''}
-                {t('now.meals')}
-              </Text>
-              {attendance.full && (
-                <View style={styles.pill}>
-                  <Text style={styles.pillText}>{t('resto.full')}</Text>
-                </View>
-              )}
+              <Icon name="restaurant-line" size={14} color={colors.onAccent} />
+              <Text style={styles.kicker}>{t('now.resto')}</Text>
             </View>
-            {attendance.capacity !== null && (
-              <View style={styles.track}>
-                <View style={[styles.fill, { width: `${attendancePercent(attendance) ?? 0}%` }]} />
-              </View>
+            {attendance ? (
+              <>
+                <Text style={styles.subject} numberOfLines={2}>
+                  {attendance.name}
+                </Text>
+                <View style={styles.row}>
+                  <Text style={styles.hours}>
+                    {attendance.count}
+                    {attendance.capacity ? ` / ${attendance.capacity}` : ''} {t('now.meals')}
+                  </Text>
+                  {attendance.full && (
+                    <View style={styles.pill}>
+                      <Text style={styles.pillText}>{t('resto.full')}</Text>
+                    </View>
+                  )}
+                </View>
+                {!attendance.upToDate && <Text style={styles.detail}>{t('now.stale')}</Text>}
+              </>
+            ) : crousError ? (
+              <Text style={styles.detail}>{t('now.attendanceUnavailable', { error: crousError })}</Text>
+            ) : (
+              <ActivityIndicator color={colors.onAccent} style={styles.spinner} />
             )}
-            {!attendance.upToDate && <Text style={styles.detail}>{t('now.stale')}</Text>}
-          </>
-        ) : crousError ? (
-          <Text style={styles.detail}>{t('now.attendanceUnavailable', { error: crousError })}</Text>
-        ) : (
-          <ActivityIndicator color={colors.onAccent} style={styles.spinner} />
-        )}
+          </View>
+          {percent != null ? (
+            <Ring progress={percent / 100} label={`${percent} %`} />
+          ) : (
+            attendance && <Text style={styles.big}>{attendance.count}</Text>
+          )}
+        </View>
         {compactNext}
       </>
     );
@@ -348,6 +363,100 @@ export function NowBar({ focused, insets }: { focused: boolean; insets: EdgeInse
           {override && <Text style={styles.debugTag}>DEBUG · {override.label}</Text>}
         </View>
         <View style={styles.content}>{content}</View>
+        {!loading && mode !== 'free' && todays.length > 0 && (current || soon || (!bus && !lunch)) && <DayStrip items={todays} now={now} />}
+      </View>
+    </View>
+  );
+}
+
+/** Pin + room, then the class hours: "📍 S2.05 · 14:00 – 15:30". */
+function ClassMeta({ item }: { item: Item }) {
+  const styles = useStyles();
+  const { colors } = useAppTheme();
+  return (
+    <View style={styles.row}>
+      {item.room && (
+        <>
+          <Icon name="map-pin-2-line" size={16} color={colors.onAccent} />
+          <Text style={styles.room} numberOfLines={1}>
+            {item.room}
+          </Text>
+        </>
+      )}
+      <Text style={styles.hours}>
+        {hhmm(item.start)} – {hhmm(item.end)}
+      </Text>
+    </View>
+  );
+}
+
+const RING = 76;
+const RING_STROKE = 6;
+
+/** Circular gauge with a duration in the middle (time left in class / before it starts). */
+function Ring({ progress, label }: { progress: number; label: string }) {
+  const styles = useStyles();
+  const { colors } = useAppTheme();
+  const r = (RING - RING_STROKE) / 2;
+  const circumference = 2 * Math.PI * r;
+  const p = Math.min(1, Math.max(0, progress));
+  return (
+    <View style={styles.ring} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Svg width={RING} height={RING}>
+        <Circle cx={RING / 2} cy={RING / 2} r={r} stroke="rgba(255,255,255,0.25)" strokeWidth={RING_STROKE} fill="none" />
+        <Circle
+          cx={RING / 2}
+          cy={RING / 2}
+          r={r}
+          stroke={colors.onAccent}
+          strokeWidth={RING_STROKE}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={`${circumference * p} ${circumference}`}
+          transform={`rotate(-90 ${RING / 2} ${RING / 2})`}
+        />
+      </Svg>
+      <View style={styles.ringCenter}>
+        <Text style={styles.ringLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+          {label}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Today at a glance: one segment per class between the first start and the last end,
+ * past classes faded, the current one solid, and a tick at the current time.
+ */
+function DayStrip({ items, now }: { items: Item[]; now: number }) {
+  const styles = useStyles();
+  const start = items[0].start;
+  const end = Math.max(...items.map((i) => i.end));
+  const span = Math.max(1, end - start);
+  const pct = (ms: number) => ((ms - start) / span) * 100;
+  const nowPct = pct(now);
+  return (
+    <View style={styles.strip} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <View style={styles.stripTrack}>
+        {items.map((i, index) => (
+          <View
+            key={`${i.start}-${index}`}
+            style={[
+              styles.stripSeg,
+              {
+                left: `${pct(i.start)}%`,
+                width: `${pct(i.end) - pct(i.start)}%`,
+                opacity: i.end <= now ? 0.35 : i.start <= now ? 1 : 0.6,
+              },
+            ]}
+          />
+        ))}
+        {nowPct >= 0 && nowPct <= 100 && <View style={[styles.stripNow, { left: `${nowPct}%` }]} />}
+      </View>
+      <View style={styles.stripLabels}>
+        <Text style={styles.stripLabel}>{hhmm(start)}</Text>
+        <Text style={styles.stripLabel}>{hhmm(end)}</Text>
       </View>
     </View>
   );
@@ -405,191 +514,67 @@ function BusCard({
     [timetable, rt, plan.from, plan.to, now, limitedBuses],
   );
 
-  const header = (
-    <View style={styles.row}>
-      <Icon name="bus-line" size={14} color={colors.onAccent} />
-      <Text style={styles.kicker} numberOfLines={1}>
-        {t(BUS_TITLES[plan.kind])} · {plan.from} → {plan.to}
-      </Text>
-    </View>
-  );
-
-  if (!deps) {
-    return (
-      <>
-        {header}
-        {error ? (
-          <Text style={styles.detail}>{t('bus.unavailable', { error })}</Text>
-        ) : (
-          <ActivityIndicator color={colors.onAccent} style={styles.spinner} />
-        )}
-      </>
-    );
-  }
-  const [d, ...later] = deps;
-  if (!d) {
-    return (
-      <>
-        {header}
-        <Text style={styles.title}>{t('now.noBus24h')}</Text>
-      </>
-    );
-  }
-
-  const color = timetable!.lineColors[d.line];
-  return (
-    <>
-      {header}
-      <EtaRow first={d} later={later} now={now} lineColor={color?.bg ?? colors.accent} />
-      {plan.arriveBy && plan.context && (
-        <Text style={styles.detail} numberOfLines={1}>
-          {arrivalNote(d, plan.arriveBy, plan.context)}
-        </Text>
-      )}
-    </>
-  );
-}
-
-/** One-line bus: "🚌 C3 6 min · 14 min · St Lazare → Agroparc" (when a class is about to start). */
-function CompactBus({
-  plan,
-  timetable,
-  error,
-  rt,
-  now,
-}: {
-  plan: BusPlan;
-  timetable: Timetable | null;
-  error: string | null;
-  rt: Parameters<typeof nextDepartures>[1];
-  now: number;
-}) {
-  const styles = useStyles();
-  const { colors } = useAppTheme();
-  const { limitedBuses } = useDebug();
-  const deps = useMemo(
-    () =>
-      timetable
-        ? withDebugLimited(nextDepartures(timetable, rt, plan.from, plan.to, now, 4).filter((x) => !x.canceled).slice(0, 2), limitedBuses)
-        : null,
-    [timetable, rt, plan.from, plan.to, now, limitedBuses],
-  );
-  const d = deps?.[0];
+  const [d, ...later] = deps ?? [];
   const lineColor = d ? (timetable!.lineColors[d.line]?.bg ?? colors.accent) : colors.accent;
-  const route = `${plan.from} → ${plan.to}`;
+
+  // Two lines: route + next departure, then the arrival note (or the trip kind) + later departures.
+  let note: string = t(BUS_TITLES[plan.kind]);
+  if (!deps && error) note = t('bus.unavailable', { error });
+  else if (deps && !d) note = t('now.noBus24h');
+  else if (d && plan.arriveBy && plan.context) note = arrivalNote(d, plan.arriveBy, plan.context);
+
   return (
-    <View style={[styles.row, styles.compactBus]}>
-      <Icon name="bus-line" size={14} color={colors.onAccent} />
-      {d ? (
-        <>
-          <View style={[styles.lineBadgeSmall, { backgroundColor: colors.onAccent }]}>
-            <Text style={[styles.lineTextSmall, { color: lineColor }]}>{d.line}</Text>
-          </View>
-          {d.limited && <LimitedTag small />}
-          <Text style={styles.compactBusText} numberOfLines={1}>
-            {deps!.map((x) => eta(x, now, false)).join(' · ')} · {route}
-          </Text>
-          <LiveIcon live={d.realtime} size={12} />
-        </>
-      ) : (
-        <Text style={styles.compactBusText} numberOfLines={1}>
-          {`${deps ? t('now.noBus') : error ? t('now.busUnavailable') : '…'} · ${route}`}
+    <View style={styles.bus}>
+      <View style={styles.row}>
+        <Icon name="bus-line" size={16} color={colors.onAccent} />
+        <Text style={styles.route} numberOfLines={1}>
+          {plan.from} → {plan.to}
         </Text>
-      )}
-    </View>
-  );
-}
-
-const ROW_GAP = 8;
-const LATER_MARGIN = 4;
-
-/**
- * Line badge + next ETA (big) + up to two later ETAs (small), on one line only:
- * later ETAs that wouldn't fit are dropped. An invisible copy of the row
- * measures each part.
- */
-function EtaRow({ first, later, now, lineColor }: { first: Departure; later: Departure[]; now: number; lineColor: string }) {
-  const styles = useStyles();
-  const { colors } = useAppTheme();
-  const [rowWidth, setRowWidth] = useState(0);
-  const [mainWidth, setMainWidth] = useState(0);
-  const [laterWidths, setLaterWidths] = useState<number[]>([]);
-
-  const main = (
-    <>
-      <View style={[styles.lineBadge, { backgroundColor: colors.onAccent }]}>
-        <Text style={[styles.lineText, { color: lineColor }]}>{first.line}</Text>
-      </View>
-      {first.limited && <LimitedTag />}
-      <Text style={styles.big}>{eta(first, now, true)}</Text>
-      <LiveIcon live={first.realtime} size={16} />
-    </>
-  );
-  const laterItem = (x: Departure, onLayout?: (w: number) => void) => (
-    <View
-      key={`${x.tripId}-${x.scheduled}`}
-      style={styles.laterEta}
-      onLayout={onLayout && ((e) => onLayout(e.nativeEvent.layout.width))}
-    >
-      <Text style={styles.laterText}>{eta(x, now, false)}</Text>
-      {x.limited && <LimitedTag small />}
-      <LiveIcon live={x.realtime} size={12} />
-    </View>
-  );
-
-  // How many later ETAs fit after the main part (until measured, show none rather than overflow).
-  let fit = 0;
-  // Array.from, not slice: a sparse copy's holes would be skipped by every().
-  const widths = Array.from({ length: later.length }, (_, i) => laterWidths[i]);
-  if (rowWidth && mainWidth && widths.every((w) => w > 0)) {
-    let used = mainWidth;
-    for (const w of widths) {
-      used += ROW_GAP + LATER_MARGIN + w;
-      if (used > rowWidth) break;
-      fit++;
-    }
-  }
-
-  return (
-    <View style={styles.etaRow} onLayout={(e) => setRowWidth(e.nativeEvent.layout.width)}>
-      {/* Measurement copy: same content, invisible, never wraps. */}
-      <View style={styles.measure} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <View style={styles.row} onLayout={(e) => setMainWidth(e.nativeEvent.layout.width)}>
-          {main}
-        </View>
-        {later.map((x, i) =>
-          laterItem(x, (w) =>
-            setLaterWidths((prev) => {
-              if (prev[i] === w) return prev;
-              const next = [...prev];
-              next[i] = w;
-              return next;
-            }),
-          ),
+        {d ? (
+          <View style={styles.busNext}>
+            {/* Stretched together: the limited-stop tag is exactly as tall as the line badge. */}
+            <View style={styles.badges}>
+              <View style={[styles.lineBadge, { backgroundColor: colors.onAccent }]}>
+                <Text style={[styles.lineText, { color: lineColor }]}>{d.line}</Text>
+              </View>
+              {d.limited && <LimitedTag />}
+            </View>
+            <Text style={styles.busEta}>{eta(d, now)}</Text>
+            <LiveIcon live={d.realtime} size={14} />
+          </View>
+        ) : (
+          !deps && !error && <ActivityIndicator color={colors.onAccent} style={styles.busNext} />
         )}
       </View>
       <View style={styles.row}>
-        {main}
-        {later.slice(0, fit).map((x) => laterItem(x))}
+        <Text style={[styles.detail, styles.busNote]} numberOfLines={1}>
+          {note}
+        </Text>
+        {later.length > 0 && (
+          <Text style={styles.laterText} numberOfLines={1}>
+            {t('now.then', { times: later.map((x) => eta(x, now)).join(' · ') })}
+          </Text>
+        )}
       </View>
     </View>
   );
 }
 
-/** Wait before a departure: "in 6 min" / "6 min" (or the time when ≥ 1 h, "Now" when due). */
-function eta(d: Departure, now: number, long: boolean) {
+/** Wait before a departure: "6 min" (or the time when ≥ 1 h, "Now" when due). */
+function eta(d: Departure, now: number) {
   const mins = Math.round((d.expected - now) / 60_000);
   if (mins <= 0) return t('bus.now');
-  if (mins >= 60) return long ? t('now.etaAt', { time: hhmm(d.expected) }) : hhmm(d.expected);
-  return long ? t('now.etaIn', { min: mins }) : t('duration.min', { m: mins });
+  if (mins >= 60) return hhmm(d.expected);
+  return t('duration.min', { m: mins });
 }
 
-/** "Direct" / "Limited" tag of a limited-stop trip (C3 DIRECT). */
-function LimitedTag({ small }: { small?: boolean }) {
+/** Limited-stop trip (C3 DIRECT): a bolt next to the line badge, spelled out for screen readers. */
+function LimitedTag() {
   const styles = useStyles();
+  const { colors } = useAppTheme();
   return (
-    <View style={[styles.limited, small && styles.limitedSmall]} accessibilityLabel={t('bus.limitedA11y')}>
-      <Text style={[styles.limitedText, small && styles.limitedTextSmall]}>{t('bus.limited')}</Text>
+    <View style={styles.limited} accessible accessibilityLabel={t('bus.limited')}>
+      <Icon name="flashlight-fill" size={14} color={colors.onAccent} />
     </View>
   );
 }
@@ -635,7 +620,7 @@ const useStyles = makeStyles((c) => ({
   hero: { paddingBottom: 16, overflow: 'visible' },
   inner: { width: '100%', maxWidth: 720, alignSelf: 'center', gap: 8 },
   dateRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  date: { fontSize: 22, fontWeight: '800', color: c.onAccent, flexShrink: 1 },
+  date: { fontSize: 15, fontWeight: '700', color: c.onAccent, opacity: 0.85, flexShrink: 1 },
   debugTag: {
     marginLeft: 'auto',
     fontSize: 10,
@@ -652,37 +637,29 @@ const useStyles = makeStyles((c) => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   kicker: { fontSize: 11, fontWeight: '700', letterSpacing: 0.6, color: c.onAccent, opacity: 0.8, flexShrink: 1 },
   title: { fontSize: 16, fontWeight: '700', color: c.onAccent },
-  room: { fontSize: 22, fontWeight: '800', color: c.onAccent, flexShrink: 1 },
-  compactBus: {
-    gap: 6,
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-  },
-  compactBusText: { fontSize: 13, fontWeight: '600', color: c.onAccent, opacity: 0.9, flexShrink: 1, fontVariant: ['tabular-nums'] },
-  lineBadgeSmall: { borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
-  lineTextSmall: { fontSize: 12, fontWeight: '800' },
-  greeting: { fontSize: 18, fontWeight: '800', color: c.onAccent },
+  room: { fontSize: 16, fontWeight: '800', color: c.onAccent, flexShrink: 1 },
+  hours: { fontSize: 13, color: c.onAccent, opacity: 0.8, fontVariant: ['tabular-nums'] },
+  subject: { fontSize: 22, fontWeight: '800', color: c.onAccent },
+  classRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  classText: { flex: 1, gap: 4 },
+  ring: { width: RING, height: RING },
+  ringCenter: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', padding: RING_STROKE + 4 },
+  ringLabel: { fontSize: 16, fontWeight: '800', color: c.onAccent, fontVariant: ['tabular-nums'], textAlign: 'center' },
+  strip: { marginTop: 10, gap: 4 },
+  stripTrack: { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.15)' },
+  stripSeg: { position: 'absolute', top: 0, bottom: 0, borderRadius: 4, backgroundColor: c.onAccent },
+  stripNow: { position: 'absolute', top: -4, height: 16, width: 3, marginLeft: -1.5, borderRadius: 2, backgroundColor: c.onAccent },
+  stripLabels: { flexDirection: 'row', justifyContent: 'space-between' },
+  stripLabel: { fontSize: 11, fontWeight: '600', color: c.onAccent, opacity: 0.7, fontVariant: ['tabular-nums'] },
+  greeting: { fontSize: 20, fontWeight: '800', color: c.onAccent },
   big: { fontSize: 24, fontWeight: '800', color: c.onAccent, fontVariant: ['tabular-nums'] },
   detail: { fontSize: 13, color: c.onAccent, opacity: 0.9 },
   compactNext: { marginTop: 6 },
   hint: { marginTop: 6, fontSize: 12 },
-  track: { height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.3)', overflow: 'hidden', marginTop: 8, marginBottom: 4 },
-  fill: { height: '100%', borderRadius: 3, backgroundColor: c.onAccent },
   pill: { backgroundColor: c.live, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
   pillText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   spinner: { alignSelf: 'flex-start', marginVertical: 6 },
-  restos: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-  },
+  restos: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 10 },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -694,14 +671,14 @@ const useStyles = makeStyles((c) => ({
   },
   chipLabel: { fontSize: 13, color: c.onAccent, opacity: 0.9 },
   chipValue: { fontSize: 14, fontWeight: '800', color: c.onAccent, fontVariant: ['tabular-nums'] },
-  etaRow: { overflow: 'hidden' },
-  measure: { position: 'absolute', left: 0, top: 0, flexDirection: 'row', alignItems: 'center', gap: ROW_GAP, opacity: 0, width: 10000 },
-  laterEta: { flexDirection: 'row', alignItems: 'center', gap: 3, marginLeft: 4 },
-  laterText: { fontSize: 15, fontWeight: '700', color: c.onAccent, opacity: 0.85, fontVariant: ['tabular-nums'] },
+  laterText: { fontSize: 13, fontWeight: '600', color: c.onAccent, opacity: 0.85, fontVariant: ['tabular-nums'] },
+  bus: { gap: 4 },
+  route: { fontSize: 17, fontWeight: '800', color: c.onAccent, flex: 1 },
+  busNext: { flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 'auto' },
+  busEta: { fontSize: 20, fontWeight: '800', color: c.onAccent, fontVariant: ['tabular-nums'] },
+  busNote: { flex: 1 },
   lineBadge: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
-  limited: { borderWidth: 1, borderColor: c.onAccent, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  limitedSmall: { borderRadius: 4, paddingHorizontal: 4, paddingVertical: 0 },
-  limitedText: { fontSize: 12, fontWeight: '800', color: c.onAccent },
-  limitedTextSmall: { fontSize: 11 },
+  badges: { flexDirection: 'row', alignItems: 'stretch', gap: 4 },
+  limited: { borderWidth: 1.5, borderColor: c.onAccent, borderRadius: 6, paddingHorizontal: 4, justifyContent: 'center' },
   lineText: { fontSize: 15, fontWeight: '800' },
 }));

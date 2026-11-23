@@ -124,8 +124,6 @@ export const en: Record<TranslationKey, string> = {
   // Now bar
   'now.inProgress': 'NOW',
   'now.inProgressA11y': 'In progress: {subject}, ends in {left}',
-  'now.left': '{left} left',
-  'now.soon': 'IN {wait}',
   'now.soonA11y': 'Next class in {wait}: {subject}',
   'now.soonRoomA11y': ', room {room}',
   'now.goodDay': 'Have a nice day!',
@@ -147,8 +145,7 @@ export const en: Record<TranslationKey, string> = {
   'now.noBus24h': 'No buses in the next 24 h',
   'now.noBus': 'No bus',
   'now.busUnavailable': 'Timetable unavailable',
-  'now.etaIn': 'in {min} min',
-  'now.etaAt': 'at {time}',
+  'now.then': 'then {times}',
   'now.live': 'real time',
   'now.scheduled': 'scheduled time',
   'now.arriveBefore': 'Arrives {min} min before {subject}',

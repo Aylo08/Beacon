@@ -1,28 +1,30 @@
-// Gradient background of the home "now bar", chosen by context, with a few
-// stars at night. Drawn with react-native-svg (no extra native module).
+// Gradient background of the home "now bar", chosen by context: three tones
+// plus a soft glow in the top-right corner, and a few stars at night. Drawn with react-native-svg (no extra native module).
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 export type HeroMode = 'class' | 'lunch' | 'waiting' | 'night' | 'free' | 'loading';
 
+type Gradient = [top: string, middle: string, bottom: string];
+
 /** Gradient (top → bottom) per class type, matching the timetable colours. */
-const CLASS_GRADIENTS: Record<string, [string, string]> = {
-  CM: ['#2563eb', '#1e3a8a'], // blue
-  TD: ['#16a34a', '#14532d'], // green
-  TP: ['#7c3aed', '#4c1d95'], // purple
-  Evaluation: ['#ea580c', '#9a3412'], // orange
+const CLASS_GRADIENTS: Record<string, Gradient> = {
+  CM: ['#3b82f6', '#1d4ed8', '#1e3a8a'], // blue
+  TD: ['#10b981', '#047857', '#064e3b'], // green
+  TP: ['#8b5cf6', '#6d28d9', '#3b0764'], // purple
+  Evaluation: ['#f97316', '#c2410c', '#7c2d12'], // orange
 };
 
-const GRADIENTS: Record<Exclude<HeroMode, 'class'>, [string, string]> = {
-  lunch: ['#dc2626', '#7f1d1d'],
-  waiting: ['#6b7280', '#1f2937'],
-  night: ['#1e3a8a', '#020617'],
-  free: ['#f97316', '#c2410c'],
-  loading: ['#2563eb', '#1e3a8a'],
+const GRADIENTS: Record<Exclude<HeroMode, 'class'>, Gradient> = {
+  lunch: ['#f43f5e', '#be123c', '#881337'], // rose
+  waiting: ['#14b8a6', '#0f766e', '#134e4a'], // teal
+  night: ['#4338ca', '#1e1b4b', '#020617'], // indigo → black
+  free: ['#fb923c', '#ea580c', '#c2410c'], // sunny orange
+  loading: ['#3b82f6', '#1d4ed8', '#1e3a8a'],
 };
 
-export function heroColors(mode: HeroMode, classType?: string): [string, string] {
+export function heroColors(mode: HeroMode, classType?: string): Gradient {
   if (mode === 'class') return CLASS_GRADIENTS[classType ?? ''] ?? CLASS_GRADIENTS.CM;
   return GRADIENTS[mode];
 }
@@ -36,7 +38,7 @@ const STARS: [number, number, number, number][] = [
 ];
 
 export function HeroBackground({ mode, classType }: { mode: HeroMode; classType?: string }) {
-  const [top, bottom] = heroColors(mode, classType);
+  const [top, middle, bottom] = heroColors(mode, classType);
   const id = `hero-${mode}-${classType ?? ''}`;
   // Explicit pixel size: a "100%" Svg isn't always redrawn when the now bar grows (iOS), which left
   // the new content below the gradient. The box is also painted with the bottom colour as a fallback.
@@ -57,10 +59,16 @@ export function HeroBackground({ mode, classType }: { mode: HeroMode; classType?
           <Defs>
             <LinearGradient id={id} x1="0" y1="0" x2="0.35" y2="1">
               <Stop offset="0" stopColor={top} />
+              <Stop offset="0.55" stopColor={middle} />
               <Stop offset="1" stopColor={bottom} />
             </LinearGradient>
+            <RadialGradient id={`${id}-glow`} cx="0.9" cy="0" rx="0.7" ry="0.9" fx="0.9" fy="0">
+              <Stop offset="0" stopColor="#ffffff" stopOpacity={mode === 'night' ? 0.12 : 0.22} />
+              <Stop offset="1" stopColor="#ffffff" stopOpacity={0} />
+            </RadialGradient>
           </Defs>
           <Rect x="0" y="0" width={size.width} height={size.height} fill={`url(#${id})`} />
+          <Rect x="0" y="0" width={size.width} height={size.height} fill={`url(#${id}-glow)`} />
           {mode === 'night' &&
             STARS.map(([x, y, r, o], i) => <Circle key={i} cx={`${x}%`} cy={`${y}%`} r={r} fill="#fff" opacity={o} />)}
         </Svg>
