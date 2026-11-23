@@ -272,6 +272,7 @@ export const ko: Record<TranslationKey, string> = {
   'onboarding.featureBus': '다음 버스와 학식 혼잡도',
   'onboarding.featureIzly': 'Izly 잔액과 QR 코드 결제',
   'onboarding.privacy': 'Beacon은 로그인 정보를 절대 수집하지 않습니다. 대학 공식 페이지에서 입력한 정보는 이 기기의 키체인에만 보관됩니다. 모든 것이 휴대폰에 남습니다. Beacon은 서버가 없으며 아무것도 공유하지 않습니다.',
+  'onboarding.privacyAnalytics': 'Beacon은 로그인 정보를 절대 수집하지 않습니다. 대학 공식 페이지에서 입력한 정보는 이 기기의 키체인에만 보관됩니다. 데이터는 휴대폰에 남습니다. 익명 통계(앱 및 시스템 버전)만 전송되며, 설정에서 끌 수 있습니다.',
   'onboarding.izlyTitle': 'Izly',
   'onboarding.izlyBody': 'Izly 계정을 연결하면 잔액과 거래 내역을 보고 학식에서 QR 코드로 결제할 수 있습니다. 선택 사항이며, 나중에 설정에서도 할 수 있습니다.',
   'onboarding.izlyPrivacy': 'Izly 아이디와 비밀 코드는 Izly로만 전송되며 이 기기의 키체인에 보관됩니다. Beacon은 이를 절대 수집하지 않습니다.',
@@ -290,4 +291,7 @@ export const ko: Record<TranslationKey, string> = {
   'settings.izly': 'Izly',
   'settings.izlyLinked': 'Izly 계정 연결됨',
   'settings.izlyNotLinked': '연결된 Izly 계정 없음',
+  'settings.privacy': '개인정보',
+  'settings.analytics': '익명 통계',
+  'settings.analyticsHint': 'Beacon은 사용자 수를 세기 위해 하루에 한 번 무작위 식별자, 앱 버전, 시스템 버전을 보냅니다. 그 외(계정, 시간표, 위치)는 보내지 않습니다. 끄면 이 데이터도 서버에서 삭제됩니다.',
 };

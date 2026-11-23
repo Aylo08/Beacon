@@ -272,6 +272,7 @@ export const it: Record<TranslationKey, string> = {
   'onboarding.featureBus': 'Prossimi bus e affluenza della mensa',
   'onboarding.featureIzly': 'Il tuo saldo Izly e il pagamento con codice QR',
   'onboarding.privacy': 'Beacon non raccoglie mai le tue credenziali: le inserisci nella pagina ufficiale dell’università, poi restano nel portachiavi di questo dispositivo. Tutto resta sul tuo telefono: Beacon non ha server e non condivide nulla.',
+  'onboarding.privacyAnalytics': 'Beacon non raccoglie mai le tue credenziali: le inserisci nella pagina ufficiale dell’università, poi restano nel portachiavi di questo dispositivo. I tuoi dati restano sul telefono: vengono inviate solo statistiche anonime (versione dell’app e del sistema), disattivabili nelle Impostazioni.',
   'onboarding.izlyTitle': 'Izly',
   'onboarding.izlyBody': 'Collega il tuo account Izly per vedere saldo e operazioni e pagare in mensa con codice QR. È facoltativo: puoi farlo anche più tardi nelle impostazioni.',
   'onboarding.izlyPrivacy': 'Il tuo identificativo e il tuo codice Izly vengono inviati solo a Izly e restano nel portachiavi di questo dispositivo. Beacon non li raccoglie mai.',
@@ -290,4 +291,7 @@ export const it: Record<TranslationKey, string> = {
   'settings.izly': 'Izly',
   'settings.izlyLinked': 'Account Izly collegato',
   'settings.izlyNotLinked': 'Nessun account Izly collegato',
+  'settings.privacy': 'Privacy',
+  'settings.analytics': 'Statistiche anonime',
+  'settings.analyticsHint': 'Una volta al giorno Beacon invia un identificatore casuale, la versione dell’app e quella del sistema, per contare i suoi utenti. Nient’altro: né account, né orario, né posizione. Disattivandole, questi dati vengono cancellati anche dal server.',
 };

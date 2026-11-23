@@ -302,6 +302,7 @@ export const fr = {
   'onboarding.featureBus': 'Les prochains bus et l’affluence du resto U',
   'onboarding.featureIzly': 'Votre solde Izly et le paiement par QR code',
   'onboarding.privacy': 'Beacon ne collecte jamais vos identifiants : vous les saisissez sur la page officielle de l’université, puis ils restent dans le trousseau de cet appareil. Tout reste sur votre téléphone : Beacon n’a aucun serveur et ne partage rien.',
+  'onboarding.privacyAnalytics': 'Beacon ne collecte jamais vos identifiants : vous les saisissez sur la page officielle de l’université, puis ils restent dans le trousseau de cet appareil. Vos données restent sur votre téléphone : seules des statistiques anonymes (version de l’app et du système) sont envoyées, désactivables dans les Réglages.',
   'onboarding.izlyTitle': 'Izly',
   'onboarding.izlyBody': 'Connectez votre compte Izly pour voir votre solde et vos opérations, et payer au resto U par QR code. C’est facultatif : vous pourrez aussi le faire plus tard dans les réglages.',
   'onboarding.izlyPrivacy': 'Votre identifiant et votre code Izly ne sont envoyés qu’à Izly et restent dans le trousseau de cet appareil. Beacon ne les collecte jamais.',
@@ -320,6 +321,9 @@ export const fr = {
   'settings.izly': 'Izly',
   'settings.izlyLinked': 'Compte Izly connecté',
   'settings.izlyNotLinked': 'Aucun compte Izly connecté',
+  'settings.privacy': 'Confidentialité',
+  'settings.analytics': 'Statistiques anonymes',
+  'settings.analyticsHint': 'Une fois par jour, Beacon envoie un identifiant aléatoire, la version de l’app et celle du système, pour compter ses utilisateurs. Rien d’autre : ni compte, ni emploi du temps, ni position. Désactiver efface aussi ces données du serveur.',
 } as const;
 
 export type TranslationKey = keyof typeof fr;

@@ -1,4 +1,5 @@
-// "Réglages": theme and language, bus stops, Izly account, university account. The "Développement" section only
+// "Réglages": theme and language, bus stops, Izly account, anonymous statistics (only in builds with a
+// Beacon server), university account. The "Développement" section only
 // exists in development builds (`__DEV__` is false and dropped in release).
 import { useState, type ReactNode } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
@@ -14,6 +15,7 @@ import { useSession } from '../lib/sessionContext';
 import { BRAND, makeStyles, useAppTheme } from '../lib/theme';
 import { LANGUAGE_NAMES, setForcedLang, t, useForcedLang, type Lang } from '../lib/i18n';
 import { clearIzly, useIzlyLinked } from '../lib/izly';
+import { analyticsAvailable, setAnalyticsEnabled, useAnalyticsEnabled } from '../lib/analytics';
 
 export default function SettingsScreen() {
   const styles = useStyles();
@@ -23,6 +25,7 @@ export default function SettingsScreen() {
   const { panel } = useDebug();
   const forcedLang = useForcedLang();
   const izlyLinked = useIzlyLinked();
+  const analyticsEnabled = useAnalyticsEnabled();
   const [debugLangOpen, setDebugLangOpen] = useState(false);
 
   return (
@@ -58,6 +61,24 @@ export default function SettingsScreen() {
           />
         )}
       </Section>
+
+      {analyticsAvailable && (
+        <Section title={t('settings.privacy')}>
+          <View style={styles.row}>
+            <Icon name="lock-line" size={18} color={colors.primary} />
+            <View style={styles.flex1}>
+              <Text style={styles.label}>{t('settings.analytics')}</Text>
+              <Text style={styles.hint}>{t('settings.analyticsHint')}</Text>
+            </View>
+            <Switch
+              value={analyticsEnabled ?? true}
+              disabled={analyticsEnabled === undefined}
+              onValueChange={setAnalyticsEnabled}
+              accessibilityLabel={t('settings.analytics')}
+            />
+          </View>
+        </Section>
+      )}
 
       <Section title={t('settings.account')}>
         <OutlineButton

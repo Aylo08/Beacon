@@ -272,6 +272,7 @@ export const zh: Record<TranslationKey, string> = {
   'onboarding.featureBus': '下一班公交和食堂人数',
   'onboarding.featureIzly': 'Izly 余额和二维码支付',
   'onboarding.privacy': 'Beacon 从不收集你的登录信息：你在大学的官方页面输入，之后它们保存在本设备的钥匙串中。一切都留在你的手机上：Beacon 没有服务器，也不分享任何内容。',
+  'onboarding.privacyAnalytics': 'Beacon 从不收集你的登录信息：你在大学的官方页面输入，之后它们保存在本设备的钥匙串中。你的数据留在手机上：仅发送匿名统计信息（应用和系统版本），可在设置中关闭。',
   'onboarding.izlyTitle': 'Izly',
   'onboarding.izlyBody': '连接你的 Izly 账户，查看余额和交易记录，并在食堂用二维码支付。这是可选的：你也可以稍后在设置中完成。',
   'onboarding.izlyPrivacy': '你的 Izly 账号和密码只会发送给 Izly，并保存在本设备的钥匙串中。Beacon 从不收集它们。',
@@ -290,4 +291,7 @@ export const zh: Record<TranslationKey, string> = {
   'settings.izly': 'Izly',
   'settings.izlyLinked': '已连接 Izly 账户',
   'settings.izlyNotLinked': '未连接 Izly 账户',
+  'settings.privacy': '隐私',
+  'settings.analytics': '匿名统计',
+  'settings.analyticsHint': 'Beacon 每天发送一次随机标识符、应用版本和系统版本，用于统计用户数量。仅此而已：不含账户、课表或位置。关闭后，这些数据也会从服务器删除。',
 };

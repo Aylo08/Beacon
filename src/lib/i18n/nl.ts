@@ -272,6 +272,7 @@ export const nl: Record<TranslationKey, string> = {
   'onboarding.featureBus': 'Volgende bussen en drukte in de mensa',
   'onboarding.featureIzly': 'Je Izly-saldo en betalen met QR-code',
   'onboarding.privacy': 'Beacon verzamelt nooit je inloggegevens: je typt ze op de officiële pagina van de universiteit en daarna blijven ze in de sleutelhanger van dit apparaat. Alles blijft op je telefoon: Beacon heeft geen server en deelt niets.',
+  'onboarding.privacyAnalytics': 'Beacon verzamelt nooit je inloggegevens: je typt ze op de officiële pagina van de universiteit en daarna blijven ze in de sleutelhanger van dit apparaat. Je gegevens blijven op je telefoon: alleen anonieme statistieken (app- en systeemversie) worden verstuurd, uit te zetten in Instellingen.',
   'onboarding.izlyTitle': 'Izly',
   'onboarding.izlyBody': 'Koppel je Izly-account om je saldo en transacties te zien en in de mensa met een QR-code te betalen. Optioneel: je kunt dit ook later in de instellingen doen.',
   'onboarding.izlyPrivacy': 'Je Izly-gebruikersnaam en code worden alleen naar Izly gestuurd en blijven in de sleutelhanger van dit apparaat. Beacon verzamelt ze nooit.',
@@ -290,4 +291,7 @@ export const nl: Record<TranslationKey, string> = {
   'settings.izly': 'Izly',
   'settings.izlyLinked': 'Izly-account gekoppeld',
   'settings.izlyNotLinked': 'Geen Izly-account gekoppeld',
+  'settings.privacy': 'Privacy',
+  'settings.analytics': 'Anonieme statistieken',
+  'settings.analyticsHint': 'Eén keer per dag stuurt Beacon een willekeurige ID en de app- en systeemversie, om zijn gebruikers te tellen. Verder niets: geen account, rooster of locatie. Uitzetten verwijdert deze gegevens ook van de server.',
 };

@@ -1,10 +1,12 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useAnalytics } from '../lib/analytics';
 import { I18nProvider, t } from '../lib/i18n';
 import { SessionProvider } from '../lib/sessionContext';
 import { AppThemeProvider, useAppTheme } from '../lib/theme';
 
 export default function RootLayout() {
+  useAnalytics();
   return (
     <I18nProvider>
       <AppThemeProvider>

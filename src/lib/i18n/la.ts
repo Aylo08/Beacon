@@ -274,6 +274,7 @@ export const la: Record<TranslationKey, string> = {
   'onboarding.featureBus': 'Proxima laophora et frequentia refectorii',
   'onboarding.featureIzly': 'Summa Izly et solutio signo QR',
   'onboarding.privacy': 'Beacon notas tuas numquam colligit: eas in pagina publica universitatis scribis, deinde in arcula clavium huius instrumenti manent. Omnia in telephono tuo manent: Beacon nullum ministratorem habet nec quicquam communicat.',
+  'onboarding.privacyAnalytics': 'Beacon notas tuas numquam colligit: eas in pagina publica universitatis scribis, deinde in arcula clavium huius instrumenti manent. Data tua in telephono tuo manent: tantum statistica anonyma (versio applicationis et systematis) mittuntur, quae in Optionibus exstingui possunt.',
   'onboarding.izlyTitle': 'Izly',
   'onboarding.izlyBody': 'Rationem tuam Izly coniunge ut summam et negotia videas et in refectorio signo QR solvas. Non necesse est: postea quoque in optionibus facere potes.',
   'onboarding.izlyPrivacy': 'Nomen et signum tuum Izly soli Izly mittuntur et in arcula clavium huius instrumenti manent. Beacon ea numquam colligit.',
@@ -292,4 +293,7 @@ export const la: Record<TranslationKey, string> = {
   'settings.izly': 'Izly',
   'settings.izlyLinked': 'Ratio Izly coniuncta',
   'settings.izlyNotLinked': 'Nulla ratio Izly coniuncta',
+  'settings.privacy': 'Secretum',
+  'settings.analytics': 'Statistica anonyma',
+  'settings.analyticsHint': 'Semel in die Beacon signum fortuitum et versionem applicationis systematisque mittit, ut utentes numeret. Nihil aliud: nec ratio, nec horarium, nec locus. Si exstinguis, haec data etiam e ministratore delentur.',
 };

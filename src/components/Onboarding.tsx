@@ -9,6 +9,7 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-nati
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { analyticsAvailable } from '../lib/analytics';
 import { t } from '../lib/i18n';
 import { useIzlyLinked } from '../lib/izly';
 import { completeOnboarding } from '../lib/onboarding';
@@ -38,7 +39,7 @@ export function WelcomeStep() {
       <Feature icon="building-2-line" text={t('onboarding.featureRooms')} />
       <Feature icon="bus-line" text={t('onboarding.featureBus')} />
       <Feature icon="wallet-3-line" text={t('onboarding.featureIzly')} />
-      <Privacy text={t('onboarding.privacy')} />
+      <Privacy text={analyticsAvailable ? t('onboarding.privacyAnalytics') : t('onboarding.privacy')} />
       {message && <Text style={styles.warning}>{message}</Text>}
     </Frame>
   );

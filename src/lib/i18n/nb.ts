@@ -273,6 +273,7 @@ export const nb: Record<TranslationKey, string> = {
   'onboarding.featureBus': 'Neste busser og belegg i kantinen',
   'onboarding.featureIzly': 'Izly-saldoen din og betaling med QR-kode',
   'onboarding.privacy': 'Beacon samler aldri inn påloggingsopplysningene dine: du skriver dem på universitetets offisielle side, og så blir de værende i nøkkelringen på denne enheten. Alt blir på telefonen din: Beacon har ingen server og deler ingenting.',
+  'onboarding.privacyAnalytics': 'Beacon samler aldri inn påloggingsopplysningene dine: du skriver dem på universitetets offisielle side, og så blir de værende i nøkkelringen på denne enheten. Dataene dine blir på telefonen: bare anonym statistikk (app- og systemversjon) sendes, og du kan slå det av i Innstillinger.',
   'onboarding.izlyTitle': 'Izly',
   'onboarding.izlyBody': 'Koble til Izly-kontoen din for å se saldo og transaksjoner og betale i kantinen med QR-kode. Valgfritt: du kan også gjøre det senere i innstillingene.',
   'onboarding.izlyPrivacy': 'Izly-brukernavnet og koden din sendes bare til Izly og blir i nøkkelringen på denne enheten. Beacon samler dem aldri inn.',
@@ -291,4 +292,7 @@ export const nb: Record<TranslationKey, string> = {
   'settings.izly': 'Izly',
   'settings.izlyLinked': 'Izly-konto tilkoblet',
   'settings.izlyNotLinked': 'Ingen Izly-konto tilkoblet',
+  'settings.privacy': 'Personvern',
+  'settings.analytics': 'Anonym statistikk',
+  'settings.analyticsHint': 'Én gang om dagen sender Beacon en tilfeldig ID samt app- og systemversjonen, for å telle brukerne sine. Ikke noe annet: ingen konto, timeplan eller posisjon. Slår du det av, slettes også disse dataene fra serveren.',
 };

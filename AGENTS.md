@@ -65,7 +65,8 @@ gitignored `PRIVATE_AGENTS.md` on the maintainer's machine. Don't recreate it or
   maintainer before adding a new endpoint.
 - **Privacy promises are user-facing text** (onboarding): credentials are typed on the official pages,
   stored in the device keychain and only sent to the official services; location is never stored or
-  sent. Keep the text true if you change what the app sends.
+  sent; the only thing sent to the Beacon server is the daily anonymous statistics ping (opt-out in
+  Réglages). Keep the text true if you change what the app sends.
 - Don't start or kill the dev server unless asked: the maintainer usually has one running.
 - **Never start `expo start` with `CI=1`**: it disables file watching and edits silently don't reload.
 
@@ -79,6 +80,8 @@ the release keystore from repo secrets → GitHub release with `Beacon-<tag>.apk
 - Changelog = commit subjects since the previous `v*` tag → write clear, imperative commit subjects
   (`feat: …`, `fix: …`, `ci: …`).
 - Android `versionCode` = workflow run number (env `BEACON_VERSION_CODE`, read in `app.config.ts`).
+- Beacon server URL: repo variable `BEACON_API_URL` → `EXPO_PUBLIC_BEACON_API_URL` at bundle time
+  (unset → no statistics, and the onboarding says Beacon has no server).
 - Pushes to `dev` don't build anything.
 
 ## Features
@@ -106,11 +109,26 @@ src/components/izly/     Payer tab components
 src/widgets/             home widgets + registry.ts
 src/debug/DebugPanel.tsx dev-only now-bar scenarios (fake clock / events)
 src/lib/                 logic: storage (keychain), store (createStore), prefs, session, edt*, events, time,
-                         theme, i18n/, izly/, bus + gtfsRt (buses), crous, studentCard, code128, webview, http
+                         theme, i18n/, izly/, bus + gtfsRt (buses), crous, studentCard, code128, webview, http,
+                         beaconApi + analytics + content (Beacon server, see below)
 scripts/gen-icons.py     regenerates src/components/Icon.tsx
 assets/icon-src/         app icon generator (Pillow)
 app.json / app.config.ts config; BEACON_PERSONAL_BUILD=1 → iOS bundle id with `.dev` suffix
 ```
+
+## Beacon server
+
+`GeoffreyGx/BeaconServer` (usually checked out at `../BeaconServer`) hosts what the university can't:
+anonymous statistics and static content. The app finds it through `EXPO_PUBLIC_BEACON_API_URL`
+(`.env.local`, see `.env.example`); unset → every server feature is off and nothing is sent.
+- `src/lib/beaconApi.ts`: base URL + `beaconRequest()` (timeout).
+- `src/lib/analytics.ts`: one ping a day (`POST /v1/analytics/ping`: random install ID, app
+  version/build, platform, OS version); opt-out in Réglages → Confidentialité calls
+  `DELETE /v1/analytics/installs/:id`. Changing the payload means changing `onboarding.privacyAnalytics`
+  and `settings.analyticsHint` in every language.
+- `src/lib/content.ts`: manifest + file cache (`/v1/content/manifest.json`), **not used yet**: before
+  calling `syncContent()`, update the onboarding privacy text.
+- The server's `/v1` API is a contract with released apps: changes there must stay backward compatible.
 
 ## Conventions
 

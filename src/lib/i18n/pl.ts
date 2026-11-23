@@ -273,6 +273,7 @@ export const pl: Record<TranslationKey, string> = {
   'onboarding.featureBus': 'Najbliższe autobusy i obłożenie stołówki',
   'onboarding.featureIzly': 'Saldo Izly i płatność kodem QR',
   'onboarding.privacy': 'Beacon nigdy nie zbiera Twoich danych logowania: wpisujesz je na oficjalnej stronie uczelni, a potem zostają w pęku kluczy tego urządzenia. Wszystko zostaje na telefonie: Beacon nie ma serwera i niczego nie udostępnia.',
+  'onboarding.privacyAnalytics': 'Beacon nigdy nie zbiera Twoich danych logowania: wpisujesz je na oficjalnej stronie uczelni, a potem zostają w pęku kluczy tego urządzenia. Twoje dane zostają na telefonie: wysyłane są tylko anonimowe statystyki (wersja aplikacji i systemu), które można wyłączyć w Ustawieniach.',
   'onboarding.izlyTitle': 'Izly',
   'onboarding.izlyBody': 'Połącz konto Izly, aby widzieć saldo i operacje oraz płacić w stołówce kodem QR. To opcjonalne: możesz to zrobić później w ustawieniach.',
   'onboarding.izlyPrivacy': 'Twój identyfikator i kod Izly są wysyłane tylko do Izly i zostają w pęku kluczy tego urządzenia. Beacon nigdy ich nie zbiera.',
@@ -291,4 +292,7 @@ export const pl: Record<TranslationKey, string> = {
   'settings.izly': 'Izly',
   'settings.izlyLinked': 'Konto Izly połączone',
   'settings.izlyNotLinked': 'Brak połączonego konta Izly',
+  'settings.privacy': 'Prywatność',
+  'settings.analytics': 'Anonimowe statystyki',
+  'settings.analyticsHint': 'Raz dziennie Beacon wysyła losowy identyfikator oraz wersję aplikacji i systemu, aby policzyć użytkowników. Nic więcej: żadnego konta, planu zajęć ani lokalizacji. Wyłączenie usuwa też te dane z serwera.',
 };

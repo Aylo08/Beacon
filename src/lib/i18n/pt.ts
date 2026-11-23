@@ -272,6 +272,7 @@ export const pt: Record<TranslationKey, string> = {
   'onboarding.featureBus': 'Próximos autocarros e afluência da cantina',
   'onboarding.featureIzly': 'O teu saldo Izly e o pagamento por código QR',
   'onboarding.privacy': 'O Beacon nunca recolhe as tuas credenciais: introduzes-as na página oficial da universidade e depois ficam no porta-chaves deste dispositivo. Tudo fica no teu telemóvel: o Beacon não tem servidor e não partilha nada.',
+  'onboarding.privacyAnalytics': 'O Beacon nunca recolhe as tuas credenciais: introduzes-as na página oficial da universidade e depois ficam no porta-chaves deste dispositivo. Os teus dados ficam no telemóvel: só são enviadas estatísticas anónimas (versão da app e do sistema), que podes desativar nas Definições.',
   'onboarding.izlyTitle': 'Izly',
   'onboarding.izlyBody': 'Liga a tua conta Izly para veres o saldo e as operações e pagares na cantina com código QR. É opcional: também podes fazê-lo mais tarde nas definições.',
   'onboarding.izlyPrivacy': 'O teu identificador e o teu código Izly só são enviados ao Izly e ficam no porta-chaves deste dispositivo. O Beacon nunca os recolhe.',
@@ -290,4 +291,7 @@ export const pt: Record<TranslationKey, string> = {
   'settings.izly': 'Izly',
   'settings.izlyLinked': 'Conta Izly ligada',
   'settings.izlyNotLinked': 'Nenhuma conta Izly ligada',
+  'settings.privacy': 'Privacidade',
+  'settings.analytics': 'Estatísticas anónimas',
+  'settings.analyticsHint': 'Uma vez por dia, o Beacon envia um identificador aleatório, a versão da app e a do sistema, para contar os seus utilizadores. Mais nada: nem conta, nem horário, nem localização. Ao desativar, estes dados também são apagados do servidor.',
 };

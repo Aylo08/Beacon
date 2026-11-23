@@ -273,6 +273,7 @@ export const fi: Record<TranslationKey, string> = {
   'onboarding.featureBus': 'Seuraavat bussit ja ravintolan käyttöaste',
   'onboarding.featureIzly': 'Izly-saldosi ja maksaminen QR-koodilla',
   'onboarding.privacy': 'Beacon ei koskaan kerää tunnuksiasi: kirjoitat ne yliopiston viralliselle sivulle, minkä jälkeen ne pysyvät tämän laitteen avainnipussa. Kaikki pysyy puhelimessasi: Beaconilla ei ole palvelinta eikä se jaa mitään.',
+  'onboarding.privacyAnalytics': 'Beacon ei koskaan kerää tunnuksiasi: kirjoitat ne yliopiston viralliselle sivulle, minkä jälkeen ne pysyvät tämän laitteen avainnipussa. Tietosi pysyvät puhelimessasi: vain nimetöntä tilastotietoa (sovelluksen ja järjestelmän versio) lähetetään, ja sen voi poistaa käytöstä asetuksista.',
   'onboarding.izlyTitle': 'Izly',
   'onboarding.izlyBody': 'Yhdistä Izly-tilisi nähdäksesi saldon ja tapahtumat sekä maksaaksesi ravintolassa QR-koodilla. Valinnainen: voit tehdä sen myöhemmin asetuksissa.',
   'onboarding.izlyPrivacy': 'Izly-tunnuksesi ja koodisi lähetetään vain Izlylle ja ne pysyvät tämän laitteen avainnipussa. Beacon ei koskaan kerää niitä.',
@@ -291,4 +292,7 @@ export const fi: Record<TranslationKey, string> = {
   'settings.izly': 'Izly',
   'settings.izlyLinked': 'Izly-tili yhdistetty',
   'settings.izlyNotLinked': 'Izly-tiliä ei ole yhdistetty',
+  'settings.privacy': 'Tietosuoja',
+  'settings.analytics': 'Nimetön tilastointi',
+  'settings.analyticsHint': 'Kerran päivässä Beacon lähettää satunnaisen tunnisteen sekä sovelluksen ja järjestelmän version käyttäjiensä laskemiseksi. Ei mitään muuta: ei tiliä, lukujärjestystä eikä sijaintia. Käytöstä poistaminen poistaa myös nämä tiedot palvelimelta.',
 };

@@ -64,6 +64,9 @@ jobs:
 
       - name: Build release APK
         working-directory: android
+        env:
+          # Beacon server URL (repo variable, not a secret: it ends up in the bundle). Unset → no statistics.
+          EXPO_PUBLIC_BEACON_API_URL: ${{ vars.BEACON_API_URL }}
         run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
 
       - name: Sign APK

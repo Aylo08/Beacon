@@ -273,6 +273,7 @@ export const ar: Record<TranslationKey, string> = {
   'onboarding.featureBus': 'الحافلات القادمة وإقبال المطعم الجامعي',
   'onboarding.featureIzly': 'رصيد Izly والدفع برمز QR',
   'onboarding.privacy': 'لا يجمع Beacon بيانات دخولك أبدًا: تكتبها في صفحة الجامعة الرسمية، ثم تبقى في سلسلة مفاتيح هذا الجهاز. كل شيء يبقى على هاتفك: ليس لـ Beacon أي خادم ولا يشارك أي شيء.',
+  'onboarding.privacyAnalytics': 'لا يجمع Beacon بيانات دخولك أبدًا: تكتبها في صفحة الجامعة الرسمية، ثم تبقى في سلسلة مفاتيح هذا الجهاز. تبقى بياناتك على هاتفك: لا تُرسل سوى إحصاءات مجهولة الهوية (إصدار التطبيق والنظام)، ويمكنك إيقافها من الإعدادات.',
   'onboarding.izlyTitle': 'Izly',
   'onboarding.izlyBody': 'اربط حساب Izly لرؤية رصيدك وعملياتك والدفع في المطعم الجامعي برمز QR. هذا اختياري: يمكنك فعله لاحقًا في الإعدادات.',
   'onboarding.izlyPrivacy': 'يُرسل معرّف Izly ورمزك إلى Izly فقط ويبقيان في سلسلة مفاتيح هذا الجهاز. لا يجمعهما Beacon أبدًا.',
@@ -291,4 +292,7 @@ export const ar: Record<TranslationKey, string> = {
   'settings.izly': 'Izly',
   'settings.izlyLinked': 'حساب Izly متصل',
   'settings.izlyNotLinked': 'لا يوجد حساب Izly متصل',
+  'settings.privacy': 'الخصوصية',
+  'settings.analytics': 'إحصاءات مجهولة الهوية',
+  'settings.analyticsHint': 'مرة واحدة يوميًا، يرسل Beacon معرّفًا عشوائيًا وإصدار التطبيق وإصدار النظام لعدّ مستخدميه. لا شيء غير ذلك: لا حساب ولا جدول ولا موقع. إيقافها يحذف هذه البيانات من الخادم أيضًا.',
 };

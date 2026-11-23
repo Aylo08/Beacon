@@ -300,6 +300,7 @@ export const en: Record<TranslationKey, string> = {
   'onboarding.featureBus': 'Next buses and cafeteria attendance',
   'onboarding.featureIzly': 'Your Izly balance and QR code payment',
   'onboarding.privacy': 'Beacon never collects your credentials: you type them on the university’s official page, then they stay in this device’s keychain. Everything stays on your phone: Beacon has no server and shares nothing.',
+  'onboarding.privacyAnalytics': 'Beacon never collects your credentials: you type them on the university’s official page, then they stay in this device’s keychain. Your data stays on your phone: only anonymous statistics (app and system version) are sent, and you can turn them off in Settings.',
   'onboarding.izlyTitle': 'Izly',
   'onboarding.izlyBody': 'Connect your Izly account to see your balance and transactions, and pay at the cafeteria with a QR code. It’s optional: you can also do it later in Settings.',
   'onboarding.izlyPrivacy': 'Your Izly identifier and code are only sent to Izly and stay in this device’s keychain. Beacon never collects them.',
@@ -318,4 +319,7 @@ export const en: Record<TranslationKey, string> = {
   'settings.izly': 'Izly',
   'settings.izlyLinked': 'Izly account connected',
   'settings.izlyNotLinked': 'No Izly account connected',
+  'settings.privacy': 'Privacy',
+  'settings.analytics': 'Anonymous statistics',
+  'settings.analyticsHint': 'Once a day, Beacon sends a random identifier, the app version and the system version, to count its users. Nothing else: no account, timetable or location. Turning this off also deletes this data from the server.',
 };
