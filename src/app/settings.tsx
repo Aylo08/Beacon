@@ -2,7 +2,8 @@
 // Beacon server), university account. The "Développement" section only
 // exists in development builds (`__DEV__` is false and dropped in release).
 import { useState, type ReactNode } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { reloadAppAsync } from 'expo';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { OutlineButton, PrimaryButton, ThemePicker } from '../components/Buttons';
@@ -11,6 +12,7 @@ import { Icon } from '../components/Icon';
 import { LanguagePicker } from '../components/LanguagePicker';
 import { OptionSheet } from '../components/OptionSheet';
 import { setDebugPanel, useDebug } from '../lib/debugOverride';
+import { wipeAllData } from '../debug/wipe';
 import { useSession } from '../lib/sessionContext';
 import { BRAND, makeStyles, useAppTheme } from '../lib/theme';
 import { LANGUAGE_NAMES, setForcedLang, t, useForcedLang, type Lang } from '../lib/i18n';
@@ -27,6 +29,7 @@ export default function SettingsScreen() {
   const izlyLinked = useIzlyLinked();
   const analyticsEnabled = useAnalyticsEnabled();
   const [debugLangOpen, setDebugLangOpen] = useState(false);
+  const [wiping, setWiping] = useState(false);
 
   return (
     <ScrollView
@@ -131,6 +134,33 @@ export default function SettingsScreen() {
             }}
             onClose={() => setDebugLangOpen(false)}
           />
+          <Text style={styles.hint}>{t('settings.wipeHint')}</Text>
+          {wiping ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : (
+            <OutlineButton
+              icon="delete-bin-line"
+              label={t('settings.wipeData')}
+              danger
+              onPress={() =>
+                Alert.alert(t('settings.wipeData'), t('settings.wipeConfirm'), [
+                  { text: t('common.cancel'), style: 'cancel' },
+                  {
+                    text: t('settings.wipeAction'),
+                    style: 'destructive',
+                    onPress: async () => {
+                      setWiping(true);
+                      const pending = await wipeAllData();
+                      // Fresh start: in-memory state is dropped and the onboarding shows again.
+                      const reload = () => reloadAppAsync('Dev: all data erased');
+                      if (pending) Alert.alert(t('settings.wipeData'), t('settings.wipePending'), [{ text: 'OK', onPress: reload }]);
+                      else reload();
+                    },
+                  },
+                ])
+              }
+            />
+          )}
         </Section>
       )}
     </ScrollView>

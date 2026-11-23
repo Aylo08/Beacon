@@ -142,6 +142,8 @@ anonymous statistics and static content. The app finds it through `EXPO_PUBLIC_B
   days as `YYYY-MM-DD` keys).
 - **Storage**: only `src/lib/storage.ts` imports `expo-secure-store` (keychain, `WHEN_UNLOCKED_THIS_DEVICE_ONLY`).
   Keep values small; larger caches go to files in `Paths.document`. Preferences: `src/lib/prefs.ts`.
+  `setItem` records every key in an index so the dev "Effacer toutes les données" button
+  (`src/debug/wipe.ts`: keychain, files, cookies, server statistics, then reload → onboarding) finds them all.
 - **Shared state outside React**: `createStore(initial)` from `src/lib/store.ts` (`useSyncExternalStore`).
 - **Theme**: `makeStyles((c) => ({…}))` from `src/lib/theme.tsx` → `useStyles()`; colours come from the
   palette (light / OLED dark), never hard-coded per screen.

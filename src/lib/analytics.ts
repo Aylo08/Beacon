@@ -63,6 +63,17 @@ const pendingDeletes = async () => (await getJson<string[]>(PENDING_DELETE_KEY))
 
 let deleting: Promise<void> | null = null;
 
+/** DELETE /v1/analytics/installs/:id → true once the server has nothing left for this ID. */
+async function deleteOnServer(id: string) {
+  const status = await beaconRequest(
+    `/v1/analytics/installs/${encodeURIComponent(id)}`,
+    { method: 'DELETE' },
+    { read: async (res) => res.status },
+  ).catch(() => 0);
+  // 2xx = deleted; 400 = an ID the server never accepted, so it has nothing to delete.
+  return (status >= 200 && status < 300) || status === 400;
+}
+
 /** Sends the queued deletions; keeps the ones that failed for the next launch / foreground. Never throws. */
 function flushPendingDeletes() {
   return (deleting ??= (async () => {
@@ -70,15 +81,7 @@ function flushPendingDeletes() {
       const ids = await pendingDeletes();
       if (!ids.length || !analyticsAvailable) return;
       const left: string[] = [];
-      for (const id of ids) {
-        const status = await beaconRequest(
-          `/v1/analytics/installs/${encodeURIComponent(id)}`,
-          { method: 'DELETE' },
-          { read: async (res) => res.status },
-        ).catch(() => 0);
-        // 2xx = deleted; 400 = an ID the server never accepted, so it has nothing to delete.
-        if (!((status >= 200 && status < 300) || status === 400)) left.push(id);
-      }
+      for (const id of ids) if (!(await deleteOnServer(id))) left.push(id);
       // Re-read: an opt-out may have queued another ID meanwhile.
       const now = await pendingDeletes();
       const keep = now.filter((id) => !ids.includes(id) || left.includes(id));
@@ -169,3 +172,23 @@ export async function setAnalyticsEnabled(enabled: boolean) {
   await Promise.all([removeItem(ID_KEY), removeItem(LAST_PING_KEY)]);
   flushPendingDeletes();
 }
+
+/**
+ * Dev "erase everything": stops pings, deletes this install (and any queued opt-out) on the server.
+ * Resolves to the IDs the server couldn't be reached for: pass them to `requeueServerDeletes()` once
+ * the keychain is wiped, so they're still deleted later.
+ */
+export async function forgetInstallOnServer(): Promise<string[]> {
+  store.set({ enabled: false }); // no new ping while wiping (reset by the reload)
+  await Promise.all([pinging, deleting]);
+  if (!analyticsAvailable) return [];
+  const id = await getItem(ID_KEY);
+  const ids = [...new Set([...(await pendingDeletes()), ...(id ? [id] : [])])];
+  const left: string[] = [];
+  for (const i of ids) if (!(await deleteOnServer(i))) left.push(i);
+  return left;
+}
+
+export const requeueServerDeletes = async (ids: string[]) => {
+  if (ids.length) await setJson(PENDING_DELETE_KEY, ids);
+};
