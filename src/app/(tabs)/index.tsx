@@ -34,7 +34,7 @@ export default function HomeScreen() {
   const side = { paddingLeft: insets.left + 16, paddingRight: insets.right + 16 };
 
   return (
-    <ScrollView style={styles.flex} contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 24 }]}>
+    <ScrollView style={styles.flex} showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 24 }]}>
       {/* Every header background is dark: light status bar text, only while this tab is shown. */}
       {focused && <StatusBar style="light" />}
       <NowBar focused={focused} insets={insets} />
