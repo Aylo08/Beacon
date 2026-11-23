@@ -10,6 +10,7 @@ import { BalanceCard } from '../../components/izly/BalanceCard';
 import { Counters } from '../../components/izly/Counters';
 import { OperationHistory } from '../../components/izly/OperationHistory';
 import { QrPayModal } from '../../components/izly/QrPayModal';
+import { confirmPayment } from '../../lib/payLock';
 import { useIzlyAccount } from '../../lib/izly/useIzlyAccount';
 import { BRAND, makeStyles, useAppTheme } from '../../lib/theme';
 import { t } from '../../lib/i18n';
@@ -58,7 +59,13 @@ export default function PayScreen() {
           </View>
         ) : (
           <>
-            <BalanceCard balance={balance} onPay={() => setQrOpen(true)} />
+            <BalanceCard
+              balance={balance}
+              // Face ID / fingerprint / passcode first: no code is requested from Izly unless it succeeds.
+              onPay={async () => {
+                if (await confirmPayment()) setQrOpen(true);
+              }}
+            />
             {error && <Text style={styles.error}>{error}</Text>}
             {counters && <Counters counters={counters} />}
             <OperationHistory operations={operations} />

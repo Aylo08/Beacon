@@ -17,6 +17,7 @@ import { useSession } from '../lib/sessionContext';
 import { BRAND, makeStyles, useAppTheme } from '../lib/theme';
 import { LANGUAGE_NAMES, setForcedLang, t, useForcedLang, type Lang } from '../lib/i18n';
 import { clearIzly, useIzlyLinked } from '../lib/izly';
+import { setPayLockEnabled, usePayLockEnabled } from '../lib/payLock';
 import { analyticsAvailable, setAnalyticsEnabled, useAnalyticsEnabled } from '../lib/analytics';
 
 export default function SettingsScreen() {
@@ -27,6 +28,7 @@ export default function SettingsScreen() {
   const { panel } = useDebug();
   const forcedLang = useForcedLang();
   const izlyLinked = useIzlyLinked();
+  const payLock = usePayLockEnabled();
   const analyticsEnabled = useAnalyticsEnabled();
   const [debugLangOpen, setDebugLangOpen] = useState(false);
   const [wiping, setWiping] = useState(false);
@@ -53,6 +55,21 @@ export default function SettingsScreen() {
           <Icon name="wallet-3-line" size={18} color={BRAND.izly} />
           <Text style={[styles.label, styles.flex1]}>{izlyLinked ? t('settings.izlyLinked') : t('settings.izlyNotLinked')}</Text>
         </View>
+        {izlyLinked && (
+          <View style={styles.row}>
+            <Icon name="lock-line" size={18} color={colors.primary} />
+            <View style={styles.flex1}>
+              <Text style={styles.label}>{t('settings.payLock')}</Text>
+              <Text style={styles.hint}>{t('settings.payLockHint')}</Text>
+            </View>
+            <Switch
+              value={payLock ?? true}
+              disabled={payLock === undefined}
+              onValueChange={setPayLockEnabled}
+              accessibilityLabel={t('settings.payLock')}
+            />
+          </View>
+        )}
         {izlyLinked ? (
           <OutlineButton icon="logout-box-r-line" label={t('pay.signOut')} danger onPress={() => clearIzly()} />
         ) : (

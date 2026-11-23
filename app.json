@@ -49,6 +49,12 @@
         }
       ],
       [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Beacon utilise Face ID pour confirmer que c’est bien vous avant d’afficher votre QR code de paiement Izly."
+        }
+      ],
+      [
         "expo-localization",
         {
           "supportedLocales": {
