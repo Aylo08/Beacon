@@ -33,6 +33,8 @@ export type Attendance = {
   name: string;
   /** `repas` as reported by the Crous screen. */
   count: number;
+  /** `jauge`: maximum number of meals the restaurant serves, null if the Crous doesn't say. */
+  capacity: number | null;
   /** `depassement`: over capacity. */
   full: boolean;
   /** false when the Crous says its data is stale. */
@@ -49,11 +51,16 @@ export async function fetchAttendance(restoId: string): Promise<Attendance> {
   return {
     name: String(lieu.libelle ?? 'Restaurant'),
     count: Number(lieu.repas) || 0,
+    capacity: Number(lieu.jauge) > 0 ? Number(lieu.jauge) : null,
     full: !!lieu.depassement,
     upToDate: data.donneesAJour !== false,
     updatedAt: String(data.majLe ?? ''),
   };
 }
+
+/** Share of the capacity already served (0–100, can't go past 100), or null without a capacity. */
+export const attendancePercent = (a: Attendance) =>
+  a.capacity ? Math.min(100, Math.round((a.count / a.capacity) * 100)) : null;
 
 export const restoForCampus = (campus: string | null) =>
   campus && normalizeSearch(campus).includes('centre') ? RESTO_CENTRE_VILLE : RESTO_AGROPARC;

@@ -16,7 +16,7 @@ import type { EdgeInsets } from 'react-native-safe-area-context';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { CENTRE_STOP, nextDepartures, type Departure, type Timetable } from '../lib/bus';
 import { useBusPrefs } from '../lib/busPrefs';
-import { campusOfRoom, isRestoOpen, RESTOS, restoForCampus, spansLunch, type Attendance } from '../lib/crous';
+import { attendancePercent, campusOfRoom, isRestoOpen, RESTOS, restoForCampus, spansLunch, type Attendance } from '../lib/crous';
 import type { RoomEvent } from '../lib/edt';
 import { normalizeSearch, titleField } from '../lib/events';
 import { usePersonalData } from '../lib/personalData';
@@ -302,13 +302,21 @@ export function NowBar({ focused, insets }: { focused: boolean; insets: EdgeInse
           <>
             <View style={styles.row}>
               <Text style={styles.big}>{attendance.count}</Text>
-              <Text style={styles.detail}>{t('now.meals')}</Text>
+              <Text style={styles.detail}>
+                {attendance.capacity ? `/ ${attendance.capacity} ` : ''}
+                {t('now.meals')}
+              </Text>
               {attendance.full && (
                 <View style={styles.pill}>
                   <Text style={styles.pillText}>{t('resto.full')}</Text>
                 </View>
               )}
             </View>
+            {attendance.capacity !== null && (
+              <View style={styles.track}>
+                <View style={[styles.fill, { width: `${attendancePercent(attendance) ?? 0}%` }]} />
+              </View>
+            )}
             {!attendance.upToDate && <Text style={styles.detail}>{t('now.stale')}</Text>}
           </>
         ) : crousError ? (

@@ -2,8 +2,8 @@
 // while the home screen is shown and the restaurants are open), "Fermé" otherwise.
 import { useIsFocused } from 'expo-router';
 import { ActivityIndicator, Text, View } from 'react-native';
-import { isRestoOpen, RESTOS } from '../lib/crous';
-import { makeStyles, useAppTheme } from '../lib/theme';
+import { attendancePercent, isRestoOpen, RESTOS, type Attendance } from '../lib/crous';
+import { makeStyles, occupancyColor, useAppTheme } from '../lib/theme';
 import { useAttendance, useNow } from '../lib/useLive';
 import { t } from '../lib/i18n';
 
@@ -44,13 +44,26 @@ function RestoRow({
       </View>
     );
   } else if (attendance) {
+    const percent = attendancePercent(attendance);
     right = (
-      <View style={styles.value}>
-        <Text style={styles.count}>{attendance.count}</Text>
-        <Text style={styles.unit}>{t('resto.meals')}</Text>
-        {attendance.full && (
-          <View style={[styles.pill, { backgroundColor: colors.live }]}>
-            <Text style={styles.pillText}>{t('resto.full')}</Text>
+      <View style={styles.gauge}>
+        <View style={styles.value}>
+          {attendance.full && (
+            <View style={[styles.pill, { backgroundColor: colors.live }]}>
+              <Text style={styles.pillText}>{t('resto.full')}</Text>
+            </View>
+          )}
+          <Text style={styles.count}>{attendance.count}</Text>
+          <Text style={styles.unit}>{attendance.capacity ? `/ ${attendance.capacity}` : t('resto.meals')}</Text>
+        </View>
+        {percent !== null && (
+          <View style={styles.track}>
+            <View
+              style={[
+                styles.fill,
+                { width: `${percent}%`, backgroundColor: occupancyColor(colors, attendance.full ? 100 : percent) },
+              ]}
+            />
           </View>
         )}
       </View>
@@ -65,7 +78,7 @@ function RestoRow({
     <View
       style={[styles.row, divider && styles.divider]}
       accessible
-      accessibilityLabel={`${resto.label}: ${!open ? t('resto.a11yClosed') : attendance ? `${t('resto.a11yMeals', { count: attendance.count })}${attendance.full ? t('resto.a11yFull') : ''}` : t('common.loading')}`}
+      accessibilityLabel={`${resto.label}: ${!open ? t('resto.a11yClosed') : attendance ? a11yAttendance(attendance) : t('common.loading')}`}
     >
       <View style={styles.body}>
         <Text style={styles.name}>{resto.label}</Text>
@@ -79,15 +92,27 @@ function RestoRow({
   );
 }
 
+function a11yAttendance(a: Attendance) {
+  const percent = attendancePercent(a);
+  return [
+    t('resto.a11yMeals', { count: a.count }),
+    percent !== null ? `, ${t('library.a11yOccupancy', { percent })}` : '',
+    a.full ? t('resto.a11yFull') : '',
+  ].join('');
+}
+
 const useStyles = makeStyles((c) => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 10 },
   divider: { borderTopWidth: 1, borderColor: c.gridLine },
   body: { flex: 1, gap: 1 },
   name: { fontSize: 14, fontWeight: '600', color: c.text },
   muted: { fontSize: 12, color: c.textMuted },
+  gauge: { alignItems: 'flex-end', gap: 4 },
   value: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
   count: { fontSize: 20, fontWeight: '800', color: c.text, fontVariant: ['tabular-nums'] },
-  unit: { fontSize: 12, color: c.textMuted },
+  unit: { fontSize: 12, color: c.textMuted, fontVariant: ['tabular-nums'] },
+  track: { width: 64, height: 4, borderRadius: 2, backgroundColor: c.gridLine, overflow: 'hidden' },
+  fill: { height: 4, borderRadius: 2 },
   pill: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'center' },
   pillText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   closed: { backgroundColor: c.surfaceAlt, borderWidth: 1, borderColor: c.border },

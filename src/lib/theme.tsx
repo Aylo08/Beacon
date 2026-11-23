@@ -92,6 +92,9 @@ const dark: Palette = {
   },
 };
 
+/** Occupancy gauges (libraries, restaurants): green below half capacity, orange up to 80 %, red above. */
+export const occupancyColor = (c: Palette, percent: number) => (percent < 50 ? c.freeText : percent < 80 ? '#f59e0b' : c.live);
+
 export const eventColors = (c: Palette, type: string): EventColors => c.events[type] ?? c.events.default;
 
 type ThemeValue = { mode: ThemeMode; setMode: (m: ThemeMode) => void; scheme: Scheme; colors: Palette };

@@ -3,7 +3,7 @@
 import { useIsFocused } from 'expo-router';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { hoursLabel, LIBRARIES, type Flow, type LibraryStatus } from '../lib/libraries';
-import { makeStyles, useAppTheme, type Palette } from '../lib/theme';
+import { makeStyles, occupancyColor, useAppTheme } from '../lib/theme';
 import { useLibrary } from '../lib/useLive';
 import { t, type TranslationKey } from '../lib/i18n';
 
@@ -12,9 +12,6 @@ const FLOW_LABEL: Record<Flow, TranslationKey> = {
   MODERATE: 'library.flowModerate',
   DENSE: 'library.flowDense',
 };
-
-/** Green below half capacity, orange up to 80 %, red above. */
-const occupancyColor = (c: Palette, percent: number) => (percent < 50 ? c.freeText : percent < 80 ? '#f59e0b' : c.live);
 
 export function LibrariesWidget() {
   const focused = useIsFocused();
