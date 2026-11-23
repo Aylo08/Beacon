@@ -14,7 +14,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { EdgeInsets } from 'react-native-safe-area-context';
 import { ActivityIndicator, Text, View } from 'react-native';
-import { CENTRE_STOP, nextDepartures, type Departure, type Timetable } from '../lib/bus';
+import { nextDepartures, samePlace, type Departure, type Timetable } from '../lib/bus';
 import { useBusPrefs } from '../lib/busPrefs';
 import { attendancePercent, campusOfRoom, isRestoOpen, RESTOS, restoForCampus, spansLunch, type Attendance } from '../lib/crous';
 import type { RoomEvent } from '../lib/edt';
@@ -102,12 +102,12 @@ function useRoomCampuses(token: string | null | undefined, rooms: (string | unde
   return (room: string | undefined): string | null | undefined => (room ? (overrides?.[room] ?? known[room]) : null);
 }
 
-/** Bus stop serving a campus: St Lazare for Centre-ville, the chosen Agroparc stop otherwise. */
-function stopForCampus(campus: string | null | undefined, campusStop: string): string | null {
+/** Bus stop serving a campus: the chosen Centre-ville stop for Centre-ville, the chosen Agroparc stop otherwise. */
+function stopForCampus(campus: string | null | undefined, stops: { centreStop: string; campusStop: string }): string | null {
   if (!campus) return null;
   const c = normalizeSearch(campus);
   if (c.includes('nondefini')) return null;
-  return c.includes('centre') ? CENTRE_STOP : campusStop;
+  return c.includes('centre') ? stops.centreStop : stops.campusStop;
 }
 
 type BusPlan = { kind: 'travel' | 'toCampus' | 'home'; from: string; to: string; context?: string; arriveBy?: number };
@@ -116,7 +116,8 @@ export function NowBar({ focused, insets }: { focused: boolean; insets: EdgeInse
   const data = usePersonalData();
   const { override } = useDebug();
   const { token } = useSession();
-  const { homeStop, campusStop } = useBusPrefs();
+  const busPrefs = useBusPrefs();
+  const { homeStop } = busPrefs;
   const styles = useStyles();
   const { colors } = useAppTheme();
   const realNow = useNow(TICK_MS, focused);
@@ -164,14 +165,14 @@ export function NowBar({ focused, insets }: { focused: boolean; insets: EdgeInse
   let bus: BusPlan | null = null;
   let needsHomeStop = false;
   if (!current) {
-    const travelFrom = slot && stopForCampus(campusOf(slotPrev?.room), campusStop);
-    const travelTo = slot && stopForCampus(campusOf(slotNext?.room), campusStop);
-    if (slot && travelFrom && travelTo && travelFrom !== travelTo) {
+    const travelFrom = slot && stopForCampus(campusOf(slotPrev?.room), busPrefs);
+    const travelTo = slot && stopForCampus(campusOf(slotNext?.room), busPrefs);
+    if (slot && travelFrom && travelTo && !samePlace(travelFrom, travelTo)) {
       bus = { kind: 'travel', from: travelFrom, to: travelTo, context: slotNext?.subject, arriveBy: slotNext?.start };
     } else if (beforeFirst || afterLast) {
-      const campus = stopForCampus(campusOf((beforeFirst ? first : last)?.room), campusStop);
+      const campus = stopForCampus(campusOf((beforeFirst ? first : last)?.room), busPrefs);
       if (!homeStop) needsHomeStop = true;
-      else if (campus && campus !== homeStop) {
+      else if (campus && !samePlace(campus, homeStop)) {
         bus = beforeFirst
           ? { kind: 'toCampus', from: homeStop, to: campus, context: first!.subject, arriveBy: first!.start }
           : { kind: 'home', from: campus, to: homeStop };

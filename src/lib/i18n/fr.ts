@@ -110,6 +110,9 @@ export const fr = {
   'bus.locate': 'Me localiser',
   'bus.locateDenied': 'Autorisez la localisation dans les réglages pour trouver l’arrêt le plus proche.',
   'bus.locateFailed': 'Position introuvable, réessayez.',
+  'bus.nearestPlace': 'Arrêt du lieu le plus proche (domicile ou campus)',
+  'bus.homeStopA11y': '{stop}, domicile',
+  'bus.campusStopA11y': '{stop}, campus',
   'bus.now': 'Maintenant',
   'bus.canceled': 'Supprimé',
   'bus.scheduled': 'théorique',
@@ -281,6 +284,7 @@ export const fr = {
   'busSettings.homeHint': 'Prochain bus avant le premier cours et après le dernier',
   'busSettings.choose': 'Choisir',
   'busSettings.campusStop': 'Arrêt Agroparc',
+  'busSettings.centreStop': 'Arrêt Centre-ville',
   'busSettings.picker': 'Mon arrêt',
 
   // Errors from data sources

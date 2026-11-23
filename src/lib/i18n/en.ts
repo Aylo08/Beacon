@@ -108,6 +108,9 @@ export const en: Record<TranslationKey, string> = {
   'bus.locate': 'Locate me',
   'bus.locateDenied': 'Allow location access in Settings to find the nearest stop.',
   'bus.locateFailed': 'Couldn’t get your location, try again.',
+  'bus.nearestPlace': 'Stop of the nearest place (home or campus)',
+  'bus.homeStopA11y': '{stop}, home',
+  'bus.campusStopA11y': '{stop}, campus',
   'bus.now': 'Now',
   'bus.canceled': 'Cancelled',
   'bus.scheduled': 'scheduled',
@@ -279,6 +282,7 @@ export const en: Record<TranslationKey, string> = {
   'busSettings.homeHint': 'Next bus before the first class and after the last one',
   'busSettings.choose': 'Choose',
   'busSettings.campusStop': 'Agroparc stop',
+  'busSettings.centreStop': 'Centre-ville stop',
   'busSettings.picker': 'My stop',
 
   // Errors from data sources

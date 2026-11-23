@@ -1,13 +1,15 @@
-// Bus timetable (Centre-ville ↔ Agroparc campuses and the user's home stop),
-// from the ORIZO open-data GTFS. Only the regular urban lines are kept: numbered
-// lines (1–2 digits) and "C" lines; school services (A4, V4, S1…), the tram
-// and the 900s are left out.
+// Bus and tram timetable (Centre-ville ↔ Agroparc campuses and the user's home
+// stop), from the ORIZO open-data GTFS. Only the regular urban lines are kept:
+// numbered lines (1–2 digits), "C" lines and the tram (T1); school services
+// (A4, V4, S1…) and the 900s are left out.
 //
 // The feed is only valid a few weeks ahead, so it is downloaded on the device
 // (≈2.4 MB zip), reduced to the kept lines' trips and cached as JSON.
 // Stops are matched by name (a name groups the platforms of both directions)
 // and lines by short name, so a new feed with renumbered IDs keeps working.
-// "St Lazare" and "Université" are one stop under two names: merged as CENTRE_STOP.
+// Tram stops share their names with the bus stops there ("Gare Centre", "St Roch"…).
+// "St Lazare" and "Université" are two stops ~150 m apart served by different
+// lines: the user picks one, and a ride between them doesn't count (samePlace).
 import { fetch } from 'expo/fetch';
 import { File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
@@ -18,27 +20,31 @@ import { t } from './i18n';
 const GTFS_URL =
   'https://api.maas-fr.cityway.fr/dataflow/offre-tc/download?provider=ORIZO&dataFormat=GTFS&dataProfil=OPENDATA';
 
-/** Regular urban lines: "04", "22", "C3"… (not "A4", "T1", "907"). */
-export const isBusLine = (shortName: string) => /^(\d{1,2}|C\d+)$/i.test(shortName);
+/** Kept lines: tram "T1" and regular urban lines "04", "22", "C3"… (not "A4", "907"). */
+export const isKeptLine = (shortName: string) => /^(\d{1,2}|[CT]\d+)$/i.test(shortName);
 
-/** "C2" < "C3" < "04" < "22": C lines first, then by number. */
+/** "T1" < "C2" < "C3" < "04" < "22": tram, then C lines, then by number. */
 export const compareLines = (a: string, b: string) => {
-  const ca = /^C/i.test(a);
-  return ca !== /^C/i.test(b) ? (ca ? -1 : 1) : a.localeCompare(b, 'fr', { numeric: true });
+  const rank = (l: string) => (/^T/i.test(l) ? 0 : /^C/i.test(l) ? 1 : 2);
+  return rank(a) - rank(b) || a.localeCompare(b, 'fr', { numeric: true });
 };
 
-/** Centre-ville stop (St Lazare and Université merged). */
-export const CENTRE_STOP = 'St Lazare / Université';
-const STOP_ALIASES: Record<string, string> = { 'St Lazare': CENTRE_STOP, Université: CENTRE_STOP };
-/** Stop name as shown and matched in the app (merges the St Lazare / Université aliases). */
-export const canonicalStop = (name: string) => STOP_ALIASES[name] ?? name;
-/** Agroparc stops (the user picks one). */
+/** Centre-ville campus stops (the user picks one). */
+export const CENTRE_STOPS = ['St Lazare', 'Université'] as const;
+export type CentreStop = (typeof CENTRE_STOPS)[number];
+/** Agroparc campus stops (the user picks one). */
 export const CAMPUS_STOPS = ['Grand Avignon', 'Montaigne'] as const;
 export type CampusStop = (typeof CAMPUS_STOPS)[number];
+/** Name stored before St Lazare and Université were split (old prefs). */
+export const LEGACY_CENTRE_STOP = 'St Lazare / Université';
+
+const isCentre = (name: string) => (CENTRE_STOPS as readonly string[]).includes(name);
+/** Same stop, or St Lazare / Université (one place): no trip between them. */
+export const samePlace = (a: string, b: string) => a === b || (isCentre(a) && isCentre(b));
 
 /** Re-download the timetable after this long (the feed is published every few days). */
 const MAX_AGE_MS = 3 * 24 * 3600_000;
-const CACHE_VERSION = 5;
+const CACHE_VERSION = 6;
 
 /** [stop_id, seconds since the start of the service day (may exceed 24 h)], in stop order. */
 type StopTime = [string, number];
@@ -49,7 +55,7 @@ export type Timetable = {
   version: number;
   fetchedAt: number;
   lineColors: Record<string, { bg: string; text: string }>;
-  /** stop_id → stop name (canonical, see canonicalStop), for the stops served by these lines. */
+  /** stop_id → stop name, for the stops served by these lines. */
   stopNames: Record<string, string>;
   /** Stop name → [latitude, longitude] (centre of its platforms). */
   stopCoords: Record<string, [number, number]>;
@@ -139,7 +145,7 @@ export function parseGtfs(zip: Uint8Array): Timetable {
   const lineColors: Timetable['lineColors'] = {};
   eachRow(text('routes.txt'), (get) => {
     const short = get('route_short_name').trim();
-    if (!isBusLine(short)) return;
+    if (!isKeptLine(short)) return;
     routes.set(get('route_id'), short);
     const color = get('route_color');
     const textColor = get('route_text_color');
@@ -172,7 +178,7 @@ export function parseGtfs(zip: Uint8Array): Timetable {
     const stopId = get('stop_id');
     trip.stops.push([stopId, gtfsTime(get('departure_time') || get('arrival_time'))]);
     trip.seqs.push(Number(get('stop_sequence')));
-    stopNames[stopId] = canonicalStop(allStopNames.get(stopId) ?? stopId);
+    stopNames[stopId] = allStopNames.get(stopId) ?? stopId;
   });
 
   const kept: BusTrip[] = [];
@@ -181,11 +187,11 @@ export function parseGtfs(zip: Uint8Array): Timetable {
     const order = trip.seqs.map((_, i) => i).sort((a, b) => trip.seqs[a] - trip.seqs[b]);
     const stops = order.map((i) => trip.stops[i]);
     // No headsign: the terminus.
-    const headsign = trip.headsign || canonicalStop(allStopNames.get(stops[stops.length - 1][0]) ?? '');
+    const headsign = trip.headsign || (allStopNames.get(stops[stops.length - 1][0]) ?? '');
     kept.push({ id, line: trip.line, service: trip.service, limited: trip.limited, headsign, stops });
   }
 
-  // Centre of each (canonical) stop's platforms.
+  // Centre of each stop's platforms.
   const sums: Record<string, [number, number, number]> = {};
   for (const [id, name] of Object.entries(stopNames)) {
     const c = allStopCoords.get(id);
@@ -293,7 +299,7 @@ export type Departure = {
   headsign: string;
 };
 
-/** Stop names served by the kept lines, sorted, with the lines serving each. */
+/** Stop names served by the kept lines (bus and tram), sorted, with the lines serving each. */
 export function busStops(tt: Timetable): { name: string; lines: string[] }[] {
   const lines = new Map<string, Set<string>>();
   for (const trip of tt.trips)
@@ -375,7 +381,7 @@ export function nextDepartures(
   now: number,
   count = 3,
 ): Departure[] {
-  if (fromName === toName) return [];
+  if (samePlace(fromName, toName)) return [];
   // Per trip: first call at `from`, then the first call at `to` after it.
   const legs: Leg[] = [];
   for (const trip of tt.trips) {
@@ -390,13 +396,13 @@ export function nextDepartures(
 /**
  * Next `count` departures of every line from stop `name`, whatever their destination
  * (arrival = terminus). Buses ending there aren't departures: a call counts only if
- * the bus then goes on to another stop (so "Université → St Lazare" at the end of a
- * trip, both CENTRE_STOP, is an arrival).
+ * the bus then goes on to another place (so "St Lazare → Université" at the end of a
+ * trip is an arrival, see samePlace).
  */
 export function stopDepartures(tt: Timetable, rt: RealtimeFeed | null, name: string, now: number, count = 6): Departure[] {
   const legs: Leg[] = [];
   for (const trip of tt.trips) {
-    const i = trip.stops.findIndex(([id], k) => tt.stopNames[id] === name && trip.stops.slice(k + 1).some(([n]) => tt.stopNames[n] !== name));
+    const i = trip.stops.findIndex(([id], k) => tt.stopNames[id] === name && trip.stops.slice(k + 1).some(([n]) => !samePlace(tt.stopNames[n], name)));
     if (i >= 0) legs.push({ trip, dep: trip.stops[i], arr: trip.stops[trip.stops.length - 1] });
   }
   return departuresOf(tt, rt, legs, now, count);

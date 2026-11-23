@@ -1,8 +1,9 @@
-// Settings: home bus stop (any stop of the kept lines) and Agroparc stop (Grand Avignon / Montaigne).
+// Settings: home bus stop (any stop of the kept lines), Centre-ville stop (St Lazare / Université)
+// and Agroparc stop (Grand Avignon / Montaigne).
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { CAMPUS_STOPS } from '../lib/bus';
-import { setCampusStop, setHomeStop, useBusPrefs } from '../lib/busPrefs';
+import { CAMPUS_STOPS, CENTRE_STOPS } from '../lib/bus';
+import { setCampusStop, setCentreStop, setHomeStop, useBusPrefs } from '../lib/busPrefs';
 import { makeStyles, useAppTheme } from '../lib/theme';
 import { useTimetable } from '../lib/useBus';
 import { Icon } from './Icon';
@@ -12,7 +13,7 @@ import { t } from '../lib/i18n';
 export function BusSettings() {
   const styles = useStyles();
   const { colors } = useAppTheme();
-  const { homeStop, campusStop } = useBusPrefs();
+  const { homeStop, centreStop, campusStop } = useBusPrefs();
   const [open, setOpen] = useState(false);
   // Only needed for the stop list: load it when the picker opens.
   const { timetable, error } = useTimetable(open);
@@ -37,23 +38,11 @@ export function BusSettings() {
         <Icon name="arrow-right-s-line" size={20} color={colors.textMuted} />
       </Pressable>
 
+      <Text style={styles.label}>{t('busSettings.centreStop')}</Text>
+      <Segmented options={CENTRE_STOPS} value={centreStop} onChange={setCentreStop} />
+
       <Text style={styles.label}>{t('busSettings.campusStop')}</Text>
-      <View style={styles.segmented} accessibilityRole="radiogroup">
-        {CAMPUS_STOPS.map((c) => {
-          const selected = c === campusStop;
-          return (
-            <Pressable
-              key={c}
-              onPress={() => setCampusStop(c)}
-              accessibilityRole="radio"
-              accessibilityState={{ selected }}
-              style={[styles.segment, selected && styles.segmentSelected]}
-            >
-              <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>{c}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <Segmented options={CAMPUS_STOPS} value={campusStop} onChange={setCampusStop} />
 
       <StopPicker
         visible={open}
@@ -68,6 +57,28 @@ export function BusSettings() {
         }}
         onClose={() => setOpen(false)}
       />
+    </View>
+  );
+}
+
+function Segmented<T extends string>({ options, value, onChange }: { options: readonly T[]; value: T; onChange: (v: T) => void }) {
+  const styles = useStyles();
+  return (
+    <View style={styles.segmented} accessibilityRole="radiogroup">
+      {options.map((o) => {
+        const selected = o === value;
+        return (
+          <Pressable
+            key={o}
+            onPress={() => onChange(o)}
+            accessibilityRole="radio"
+            accessibilityState={{ selected }}
+            style={[styles.segment, selected && styles.segmentSelected]}
+          >
+            <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>{o}</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }

@@ -1,19 +1,29 @@
-// "Bus": next departures of every line from one stop, each with its
-// destination. The stop is picked from the whole network (searchable), or by
-// "Locate me": the nearest of the home stop, St Lazare / Université and the
-// Agroparc stop (chosen in the settings). The next bus to each of the two
-// campuses (St Lazare / Université, the Agroparc stop) is pinned first.
+// "Bus": next departures of every line (bus and tram) from one stop, each with
+// its destination. The stop is picked from the whole network (searchable), by
+// "Locate me" (the nearest stop), or by the place button: the stop of the
+// nearest place among home and the two campuses (the Centre-ville / Agroparc
+// stops chosen in the settings); its icon shows which place is nearest. The
+// next bus to each campus is pinned first. The position stays in memory.
 // Realtime from the ORIZO GTFS-RT feed (polled every 30 s while visible), else
 // the timetable.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { useIsFocused } from 'expo-router';
 import * as Location from 'expo-location';
 import { Icon } from '../components/Icon';
-import { StopPicker } from '../components/StopPicker';
-import { CENTRE_STOP, nearestStop, nextDepartures, stopDepartures, type Departure, type Timetable } from '../lib/bus';
+import { StopPicker, type PinnedStop } from '../components/StopPicker';
+import {
+  CAMPUS_STOPS,
+  CENTRE_STOPS,
+  nearestStop,
+  nextDepartures,
+  samePlace,
+  stopDepartures,
+  type Departure,
+  type Timetable,
+} from '../lib/bus';
 import type { RealtimeFeed } from '../lib/gtfsRt';
-import { setWidgetStop, useBusPrefs } from '../lib/busPrefs';
+import { setWidgetStop, useBusPrefs, type BusPrefs } from '../lib/busPrefs';
 import { useDebug, withDebugLimited } from '../lib/debugOverride';
 import { makeStyles, useAppTheme } from '../lib/theme';
 import { formatMinutes, parisParts } from '../lib/time';
@@ -41,36 +51,86 @@ function stopList(tt: Timetable, rt: RealtimeFeed | null, from: string, targets:
   return { pinned, others };
 }
 
-/** Current position: a recent fix if there is one (fast), else a fresh one. */
+/** Current position: a recent fix if there is one (fast), else a fresh one. Stops are a few hundred metres apart. */
 async function currentPosition(): Promise<[number, number]> {
   const pos =
-    (await Location.getLastKnownPositionAsync({ maxAge: 2 * 60_000, requiredAccuracy: 300 })) ??
-    (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
+    (await Location.getLastKnownPositionAsync({ maxAge: 60_000, requiredAccuracy: 100 })) ??
+    (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }));
   return [pos.coords.latitude, pos.coords.longitude];
+}
+
+type Place = { kind: 'home' | 'campus'; /** Stop to select. */ stop: string; /** Stops locating the place. */ near: readonly string[] };
+
+/** Home (if set), Centre-ville and Agroparc, each with the stop the user chose for it. */
+const places = ({ homeStop, centreStop, campusStop }: BusPrefs): Place[] => [
+  ...(homeStop ? [{ kind: 'home' as const, stop: homeStop, near: [homeStop] }] : []),
+  { kind: 'campus', stop: centreStop, near: CENTRE_STOPS },
+  { kind: 'campus', stop: campusStop, near: CAMPUS_STOPS },
+];
+
+/** The place nearest to `here` (distance to the nearest of its stops), or null. */
+function nearestPlace(tt: Timetable, list: Place[], here: [number, number]): Place | null {
+  let best: { place: Place; distance: number } | null = null;
+  for (const place of list) {
+    const d = nearestStop(tt, [...place.near], here);
+    if (d && (!best || d.distance < best.distance)) best = { place, distance: d.distance };
+  }
+  return best?.place ?? null;
+}
+
+/** Last known position if location is already allowed (no prompt, no GPS fix), for the place button's icon. */
+function useKnownPosition(active: boolean) {
+  const [here, setHere] = useState<[number, number] | null>(null);
+  useEffect(() => {
+    if (!active) return;
+    let cancelled = false;
+    (async () => {
+      if (!(await Location.getForegroundPermissionsAsync()).granted) return;
+      const pos = await Location.getLastKnownPositionAsync({ maxAge: 10 * 60_000, requiredAccuracy: 500 });
+      if (pos && !cancelled) setHere([pos.coords.latitude, pos.coords.longitude]);
+    })().catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [active]);
+  return [here, setHere] as const;
 }
 
 export function BusWidget() {
   const focused = useIsFocused();
   const styles = useStyles();
   const { colors } = useAppTheme();
-  const { homeStop, campusStop, widgetStop } = useBusPrefs();
+  const prefs = useBusPrefs();
+  const { homeStop, centreStop, campusStop, widgetStop } = prefs;
   const { timetable, error } = useTimetable(focused);
   const rt = useRealtime(focused);
   const now = useNow(15_000, focused);
   const { limitedBuses } = useDebug();
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [locating, setLocating] = useState(false);
+  const [locating, setLocating] = useState<'stop' | 'place' | null>(null);
   const [locateError, setLocateError] = useState<string | null>(null);
+
+  const [here, setHere] = useKnownPosition(focused);
 
   const stop = widgetStop ?? campusStop;
   const list = useMemo(
-    () => timetable && stopList(timetable, rt, stop, [CENTRE_STOP, campusStop].filter((x) => x !== stop), now),
-    [timetable, rt, stop, campusStop, now],
+    () => timetable && stopList(timetable, rt, stop, [centreStop, campusStop].filter((x) => !samePlace(x, stop)), now),
+    [timetable, rt, stop, centreStop, campusStop, now],
   );
+  const placeList = places(prefs);
+  // Icon of the place button: the nearest place once a position is known, else a campus.
+  const guessed = timetable && here ? nearestPlace(timetable, placeList, here) : null;
+  const placeIcon = guessed?.kind === 'home' ? 'home-5-line' : 'graduation-cap-line';
+  // Home first, then all four campus stops (each on its own row).
+  const pinnedStops: PinnedStop[] = [
+    ...(homeStop ? [{ name: homeStop, icon: 'home-5-line' as const, a11y: t('bus.homeStopA11y', { stop: homeStop }) }] : []),
+    ...[...CENTRE_STOPS, ...CAMPUS_STOPS].map((name) => ({ name, icon: 'graduation-cap-line' as const, a11y: t('bus.campusStopA11y', { stop: name }) })),
+  ];
 
-  const locate = async () => {
+  /** `stop`: the nearest stop of the network. `place`: the stop of the nearest place (home / campuses). */
+  const locate = async (kind: 'stop' | 'place') => {
     if (!timetable || locating) return;
-    setLocating(true);
+    setLocating(kind);
     setLocateError(null);
     try {
       const permission = await Location.requestForegroundPermissionsAsync();
@@ -78,14 +138,16 @@ export function BusWidget() {
         setLocateError(t('bus.locateDenied'));
         return;
       }
-      const candidates = [homeStop, CENTRE_STOP, campusStop].filter((x): x is string => !!x);
-      const best = nearestStop(timetable, candidates, await currentPosition());
-      if (best) setWidgetStop(best.name);
+      const pos = await currentPosition();
+      setHere(pos);
+      const name =
+        kind === 'stop' ? nearestStop(timetable, Object.keys(timetable.stopCoords), pos)?.name : nearestPlace(timetable, placeList, pos)?.stop;
+      if (name) setWidgetStop(name);
       else setLocateError(t('bus.locateFailed'));
     } catch {
       setLocateError(t('bus.locateFailed'));
     } finally {
-      setLocating(false);
+      setLocating(null);
     }
   };
 
@@ -104,20 +166,20 @@ export function BusWidget() {
           </Text>
           <Icon name="arrow-down-s-line" size={18} color={colors.textMuted} />
         </Pressable>
-        <Pressable
-          onPress={locate}
-          disabled={!timetable || locating}
-          accessibilityRole="button"
-          accessibilityLabel={t('bus.locate')}
-          accessibilityState={{ busy: locating, disabled: !timetable }}
-          style={({ pressed }) => [styles.locateButton, (pressed || !timetable) && styles.pressed]}
-        >
-          {locating ? (
-            <ActivityIndicator size="small" color={colors.primary} />
-          ) : (
-            <Icon name="focus-3-line" size={20} color={colors.primary} />
-          )}
-        </Pressable>
+        <ToolButton
+          icon={placeIcon}
+          label={t('bus.nearestPlace')}
+          busy={locating === 'place'}
+          disabled={!timetable || !!locating}
+          onPress={() => locate('place')}
+        />
+        <ToolButton
+          icon="focus-3-line"
+          label={t('bus.locate')}
+          busy={locating === 'stop'}
+          disabled={!timetable || !!locating}
+          onPress={() => locate('stop')}
+        />
       </View>
       {locateError && <Text style={styles.error}>{locateError}</Text>}
 
@@ -140,6 +202,7 @@ export function BusWidget() {
         value={stop}
         timetable={timetable}
         error={error}
+        pinned={pinnedStops}
         onSelect={(name) => {
           if (name) setWidgetStop(name);
           setLocateError(null);
@@ -148,6 +211,35 @@ export function BusWidget() {
         onClose={() => setPickerOpen(false)}
       />
     </View>
+  );
+}
+
+function ToolButton({
+  icon,
+  label,
+  busy,
+  disabled,
+  onPress,
+}: {
+  icon: 'home-5-line' | 'graduation-cap-line' | 'focus-3-line';
+  label: string;
+  busy: boolean;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  const styles = useStyles();
+  const { colors } = useAppTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ busy, disabled }}
+      style={({ pressed }) => [styles.locateButton, (pressed || (disabled && !busy)) && styles.pressed]}
+    >
+      {busy ? <ActivityIndicator size="small" color={colors.primary} /> : <Icon name={icon} size={20} color={colors.primary} />}
+    </Pressable>
   );
 }
 
