@@ -235,6 +235,9 @@ export function parseGtfs(zip: Uint8Array): Timetable {
 const cacheFile = () => new File(Paths.document, 'bus-timetable.json');
 let memory: Timetable | null = null;
 let loading: Promise<Timetable> | null = null;
+/** With a (stale) copy to show, don't retry a failed download (≈2.4 MB) on every mount: wait this long. */
+const RETRY_AFTER_MS = 10 * 60_000;
+let lastFailure = 0;
 
 async function download(): Promise<Timetable> {
   const res = await fetch(GTFS_URL);
@@ -258,10 +261,12 @@ export function loadTimetable(): Promise<Timetable> {
         // corrupted cache: download again
       }
     }
-    if (!memory || Date.now() - memory.fetchedAt > MAX_AGE_MS) {
+    const stale = !!memory && Date.now() - memory.fetchedAt > MAX_AGE_MS;
+    if (!memory || (stale && Date.now() - lastFailure > RETRY_AFTER_MS)) {
       try {
         memory = await download();
       } catch (e) {
+        lastFailure = Date.now();
         if (!memory) throw e;
       }
     }
@@ -340,6 +345,16 @@ export function nearestStop(tt: Timetable, names: string[], here: [number, numbe
 
 type Leg = { trip: BusTrip; dep: StopTime; arr: StopTime };
 
+// Legs only depend on the timetable and the stops: computed once, not on every clock tick / realtime update.
+const legsCache = new WeakMap<Timetable, Map<string, Leg[]>>();
+function cachedLegs(tt: Timetable, key: string, compute: () => Leg[]): Leg[] {
+  let byKey = legsCache.get(tt);
+  if (!byKey) legsCache.set(tt, (byKey = new Map()));
+  let legs = byKey.get(key);
+  if (!legs) byKey.set(key, (legs = compute()));
+  return legs;
+}
+
 /** Departures of `legs` (yesterday's, today's and tomorrow's services), realtime applied, soonest first. */
 function departuresOf(tt: Timetable, rt: RealtimeFeed | null, legs: Leg[], now: number, count: number): Departure[] {
   const today = parisParts(new Date(now)).day;
@@ -388,13 +403,16 @@ export function nextDepartures(
 ): Departure[] {
   if (samePlace(fromName, toName)) return [];
   // Per trip: first call at `from`, then the first call at `to` after it.
-  const legs: Leg[] = [];
-  for (const trip of tt.trips) {
-    const i = trip.stops.findIndex(([id]) => tt.stopNames[id] === fromName);
-    if (i < 0) continue;
-    const j = trip.stops.findIndex(([id], k) => k > i && tt.stopNames[id] === toName);
-    if (j > 0) legs.push({ trip, dep: trip.stops[i], arr: trip.stops[j] });
-  }
+  const legs = cachedLegs(tt, `trip\n${fromName}\n${toName}`, () => {
+    const out: Leg[] = [];
+    for (const trip of tt.trips) {
+      const i = trip.stops.findIndex(([id]) => tt.stopNames[id] === fromName);
+      if (i < 0) continue;
+      const j = trip.stops.findIndex(([id], k) => k > i && tt.stopNames[id] === toName);
+      if (j > 0) out.push({ trip, dep: trip.stops[i], arr: trip.stops[j] });
+    }
+    return out;
+  });
   return departuresOf(tt, rt, legs, now, count);
 }
 
@@ -405,10 +423,21 @@ export function nextDepartures(
  * trip is an arrival, see samePlace).
  */
 export function stopDepartures(tt: Timetable, rt: RealtimeFeed | null, name: string, now: number, count = 6): Departure[] {
-  const legs: Leg[] = [];
-  for (const trip of tt.trips) {
-    const i = trip.stops.findIndex(([id], k) => tt.stopNames[id] === name && trip.stops.slice(k + 1).some(([n]) => !samePlace(tt.stopNames[n], name)));
-    if (i >= 0) legs.push({ trip, dep: trip.stops[i], arr: trip.stops[trip.stops.length - 1] });
-  }
+  const legs = cachedLegs(tt, `stop\n${name}`, () => {
+    const out: Leg[] = [];
+    for (const trip of tt.trips) {
+      const names = trip.stops.map(([id]) => tt.stopNames[id]);
+      // Last call somewhere else: a call at `name` before it is a departure.
+      let lastElsewhere = -1;
+      for (let k = names.length - 1; k >= 0; k--)
+        if (!samePlace(names[k], name)) {
+          lastElsewhere = k;
+          break;
+        }
+      const i = names.findIndex((n, k) => n === name && k < lastElsewhere);
+      if (i >= 0) out.push({ trip, dep: trip.stops[i], arr: trip.stops[trip.stops.length - 1] });
+    }
+    return out;
+  });
   return departuresOf(tt, rt, legs, now, count);
 }

@@ -65,11 +65,18 @@ export const attendancePercent = (a: Attendance) =>
 export const restoForCampus = (campus: string | null) =>
   campus && normalizeSearch(campus).includes('centre') ? RESTO_CENTRE_VILLE : RESTO_AGROPARC;
 
-// The room list is the same for everyone and rarely changes: fetch it once per token.
-let campuses: { token: string; promise: Promise<Campus[]> } | null = null;
+/** A room name in search form (see normalizeSearch) and its campus. */
+type IndexedRoom = { name: string; campus: string };
+
+// The room list is the same for everyone and rarely changes: fetch (and normalise) it once per token.
+let campuses: { token: string; promise: Promise<IndexedRoom[]> } | null = null;
 function getCampuses(token: string) {
   if (campuses?.token !== token) {
-    const promise = edt.getSalles(token);
+    const promise = edt
+      .getSalles(token)
+      .then((list: Campus[]) =>
+        list.flatMap((c) => c.names.map((s) => ({ name: normalizeSearch(s.name), campus: c.letter }))).filter((r) => r.name),
+      );
     campuses = { token, promise };
     promise.catch(() => {
       if (campuses?.promise === promise) campuses = null; // retry next time
@@ -83,12 +90,9 @@ export async function campusOfRoom(token: string, room: string): Promise<string 
   const target = normalizeSearch(room);
   if (!target) return null;
   let best: { campus: string; len: number } | null = null;
-  for (const c of await getCampuses(token)) {
-    for (const s of c.names) {
-      const name = normalizeSearch(s.name);
-      // Longest room name contained in the field wins (e.g. "S2" vs "S2 CERI").
-      if (name && target.includes(name) && (!best || name.length > best.len)) best = { campus: c.letter, len: name.length };
-    }
+  for (const { name, campus } of await getCampuses(token)) {
+    // Longest room name contained in the field wins (e.g. "S2" vs "S2 CERI").
+    if (target.includes(name) && (!best || name.length > best.len)) best = { campus, len: name.length };
   }
   return best?.campus ?? null;
 }

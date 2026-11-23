@@ -1,25 +1,18 @@
 // "Aujourd'hui": today's classes from the personal timetable, with the current
 // class and the next one highlighted. Tapping opens the "Mon EDT" tab.
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useIsFocused } from 'expo-router';
 import type { RoomEvent } from '../lib/edt';
 import { titleField } from '../lib/events';
 import { usePersonalData } from '../lib/personalData';
 import { eventColors, makeStyles, useAppTheme } from '../lib/theme';
 import { formatMinutes, parisParts, shortDayLabel, todayKey } from '../lib/time';
+import { useNow } from '../lib/useLive';
 import { t } from '../lib/i18n';
 
 type Item = { event: RoomEvent; day: string; start: number; end: number; subject: string; room?: string };
 
-function useNow() {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(id);
-  }, []);
-  return now;
-}
 
 const toItem = (event: RoomEvent): Item => {
   const s = parisParts(new Date(event.start));
@@ -38,20 +31,26 @@ export function TodayWidget() {
   const { events, error, loading, selected } = usePersonalData();
   const styles = useStyles();
   const { colors } = useAppTheme();
-  const nowMs = useNow();
+  // Ticks only while the home screen is shown and the app is in the foreground.
+  const focused = useIsFocused();
+  const nowMs = useNow(30_000, focused);
   const today = todayKey();
   const nowMin = parisParts(new Date(nowMs)).minutes;
 
+  // Parsed once per timetable (the whole semester), not on every clock tick.
+  const items = useMemo(
+    () => (events ? events.map(toItem).sort((a, b) => a.day.localeCompare(b.day) || a.start - b.start) : null),
+    [events],
+  );
   const { todays, next } = useMemo(() => {
-    if (!events) return { todays: [], next: undefined };
-    const items = events.map(toItem).sort((a, b) => a.day.localeCompare(b.day) || a.start - b.start);
+    if (!items) return { todays: [], next: undefined };
     // Skip all-day markers (holidays) in the list; they show as a note instead.
     const todays = items.filter((i) => i.day === today && i.end - i.start < 12 * 60);
     const upcoming = items.filter(
       (i) => i.event.type !== 'Annulation' && i.end - i.start < 12 * 60 && (i.day > today || (i.day === today && i.start > nowMin)),
     );
     return { todays, next: upcoming[0] };
-  }, [events, today, nowMin]);
+  }, [items, today, nowMin]);
 
   if (loading) return <ActivityIndicator color={colors.textMuted} style={styles.pad} />;
   if (error) return <Text style={[styles.muted, styles.pad]}>{error}</Text>;

@@ -10,9 +10,10 @@ import { EventSheet } from '../../components/EventSheet';
 import { Icon } from '../../components/Icon';
 import { OptionSheet } from '../../components/OptionSheet';
 import type { RoomEvent } from '../../lib/edt';
+import { eventDay } from '../../lib/events';
 import { usePersonalData } from '../../lib/personalData';
 import { makeStyles, useAppTheme } from '../../lib/theme';
-import { addDays, dayLabel, mondayOf, parisParts, shortDayLabel, todayKey } from '../../lib/time';
+import { addDays, dayLabel, mondayOf, shortDayLabel, todayKey } from '../../lib/time';
 import { t } from '../../lib/i18n';
 
 const WIDE_BREAKPOINT = 768;
@@ -34,7 +35,7 @@ export default function PersonalScreen() {
   const weekDays = useMemo(() => {
     const monday = mondayOf(day);
     const week = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
-    const hasEvents = (d: string) => events?.some((e) => parisParts(new Date(e.start)).day === d);
+    const hasEvents = (d: string) => events?.some((e) => eventDay(e) === d);
     return week.filter((d, i) => i < 5 || hasEvents(d));
   }, [day, events]);
   const shownDays = wide ? weekDays : [day];
@@ -46,9 +47,7 @@ export default function PersonalScreen() {
     setRecenter((n) => n + 1);
   }, []);
 
-  const count = events
-    ? events.filter((e) => shownDays.includes(parisParts(new Date(e.start)).day) && e.type !== 'Annulation').length
-    : 0;
+  const count = events ? events.filter((e) => e.type !== 'Annulation' && shownDays.includes(eventDay(e))).length : 0;
 
   return (
     <View style={[styles.flex, { paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }]}>

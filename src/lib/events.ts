@@ -24,6 +24,9 @@ function eventParts(event: RoomEvent) {
   return parts;
 }
 
+/** Paris calendar day an event starts on (cached per event). */
+export const eventDay = (event: RoomEvent) => eventParts(event).s.day;
+
 export type PlacedEvent = {
   event: RoomEvent;
   /** Minutes since Paris midnight, clipped to the requested window. */

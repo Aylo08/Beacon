@@ -15,11 +15,25 @@ const partsFormatter = new Intl.DateTimeFormat('en-CA', {
   hourCycle: 'h23',
 });
 
+// formatToParts is slow on Hermes and called on every tick (now bar, buses, widgets).
+// Paris is a whole number of hours ahead of UTC, so the result only changes on UTC
+// minute boundaries: cache it per epoch minute.
+const partsCache = new Map<number, { day: string; minutes: number }>();
+const PARTS_CACHE_MAX = 4096;
+
 /** Paris calendar day and minutes since midnight for an instant. */
 export function parisParts(date: Date): { day: string; minutes: number } {
+  const minute = Math.floor(date.getTime() / 60_000);
+  const hit = partsCache.get(minute);
+  if (hit) return hit;
   const p: Record<string, string> = {};
   for (const { type, value } of partsFormatter.formatToParts(date)) p[type] = value;
-  return { day: `${p.year}-${p.month}-${p.day}`, minutes: Number(p.hour) * 60 + Number(p.minute) };
+  const parts = { day: `${p.year}-${p.month}-${p.day}`, minutes: Number(p.hour) * 60 + Number(p.minute) };
+  if (Number.isFinite(minute)) {
+    if (partsCache.size >= PARTS_CACHE_MAX) partsCache.clear();
+    partsCache.set(minute, parts);
+  }
+  return parts;
 }
 
 export const todayKey = () => parisParts(new Date()).day;

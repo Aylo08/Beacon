@@ -40,6 +40,9 @@ const LANE_H = 38;
 const ROW_PAD = 4;
 const HEADER_H = 28;
 const IS_WEB = Platform.OS === 'web';
+/** Rows loaded below the visible ones, so they're ready when scrolled to. */
+const PRELOAD_ROWS = 15;
+const MIN_ROW_H = LANE_H + ROW_PAD * 2;
 
 type Props = {
   rooms: Salle[];
@@ -54,6 +57,11 @@ type Props = {
   /** Codes of the pinned rooms. */
   pinned: Set<string>;
   onTogglePin: (room: Salle) => void;
+  /**
+   * Called with how many rows (from the top) are on screen or about to be, so the
+   * screen only loads those rooms. Over-estimates (rows are at least one lane high).
+   */
+  onReach?: (rows: number) => void;
 };
 
 type RowLayout = { room: Salle; state: RoomEventsState; placed: PlacedEvent[]; height: number };
@@ -82,7 +90,18 @@ const eventX = (e: { nativeEvent: object }) => {
   return n.clientX ?? n.pageX ?? 0;
 };
 
-export function RoomTimeline({ rooms, day, getEvents, version, cursor, onCursorChange, recenter, pinned, onTogglePin }: Props) {
+export function RoomTimeline({
+  rooms,
+  day,
+  getEvents,
+  version,
+  cursor,
+  onCursorChange,
+  recenter,
+  pinned,
+  onTogglePin,
+  onReach,
+}: Props) {
   const { width } = useWindowDimensions();
   const nameW = width < 600 ? 112 : 170;
   const slotW = Math.max(MIN_SLOT_W, Math.floor((width - nameW - 2) / SLOTS));
@@ -161,7 +180,12 @@ export function RoomTimeline({ rooms, day, getEvents, version, cursor, onCursorC
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recenter, viewportW, gridW, hasRooms]);
 
-  if (rooms.length === 0) return <Text style={styles.empty}>Aucune salle ne correspond aux filtres.</Text>;
+  // Vertical scroll position + viewport height → rows that need their events.
+  const scrollY = useRef(0);
+  const viewportH = useRef(0);
+  const reportReach = () => onReach?.(Math.ceil((scrollY.current + viewportH.current) / MIN_ROW_H) + PRELOAD_ROWS);
+
+  if (rooms.length === 0) return <Text style={styles.empty}>{t('rooms.noMatch')}</Text>;
 
   // Web: hover preview.
   const hoverProps = IS_WEB
@@ -185,7 +209,19 @@ export function RoomTimeline({ rooms, day, getEvents, version, cursor, onCursorC
   );
 
   return (
-    <ScrollView stickyHeaderIndices={[0]} style={styles.flex}>
+    <ScrollView
+      stickyHeaderIndices={[0]}
+      style={styles.flex}
+      onLayout={(e) => {
+        viewportH.current = e.nativeEvent.layout.height;
+        reportReach();
+      }}
+      onScroll={(e) => {
+        scrollY.current = e.nativeEvent.contentOffset.y;
+        reportReach();
+      }}
+      scrollEventThrottle={100}
+    >
       {/* Sticky time header. The extra wrapper matters: on native, ScrollView
           replaces a sticky child's own style with {flex: 1}, which would drop
           flexDirection: 'row' and stack the corner above the hour labels. */}
@@ -193,7 +229,7 @@ export function RoomTimeline({ rooms, day, getEvents, version, cursor, onCursorC
         <View style={[styles.flexRow, styles.header]}>
           <View style={[styles.nameCell, { width: nameW, height: HEADER_H }]}>
             <Text style={styles.headerText} maxFontSizeMultiplier={1.2}>
-              Salle
+              {t('rooms.header')}
             </Text>
           </View>
           <View

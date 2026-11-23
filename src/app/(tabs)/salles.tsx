@@ -29,6 +29,10 @@ import { t, tn } from '../../lib/i18n';
 const ALL = '__all__';
 const DEFAULT_CAMPUS = 'CERI';
 const WIDE_BREAKPOINT = 768;
+/** Rooms loaded before the timeline reports what's on screen (about a tablet screenful). */
+const INITIAL_REACH = 30;
+/** The loaded range grows in steps, so scrolling doesn't restart the loader on every row. */
+const REACH_STEP = 20;
 
 export default function RoomsScreen() {
   // The tabs layout only renders this screen when logged in.
@@ -81,7 +85,14 @@ function RoomsView({ token, onExpired }: { token: string; onExpired: () => void 
       .filter((r) => !q || normalizeSearch(r.searchString).includes(q));
   }, [campuses, campus, query, pinned]);
 
-  const codes = useMemo(() => rooms.map((r) => r.code), [rooms]);
+  // Only the rooms on screen (and a few below) are loaded: each one is a request to the
+  // university's API, and "All campuses" lists every room of the university.
+  const [reach, setReach] = useState(INITIAL_REACH);
+  const onReach = useCallback(
+    (rows: number) => setReach((r) => Math.max(r, Math.ceil(rows / REACH_STEP) * REACH_STEP)),
+    [],
+  );
+  const codes = useMemo(() => rooms.slice(0, reach).map((r) => r.code), [rooms, reach]);
   const { get, version, refresh } = useRoomEvents(token, codes, onUnauthorized);
   const loaded = codes.filter((c) => get(c) !== undefined).length;
 
@@ -167,6 +178,7 @@ function RoomsView({ token, onExpired }: { token: string; onExpired: () => void 
             recenter={recenter}
             pinned={pinnedCodes}
             onTogglePin={togglePinnedRoom}
+            onReach={onReach}
           />
         )}
       </View>
