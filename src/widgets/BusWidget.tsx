@@ -333,6 +333,9 @@ function DepartureRow({ d, now, lineColors }: { d: Departure; now: number; lineC
   );
 }
 
+/** Height of the toolbar (stop selector and location buttons). */
+const TOOL_SIZE = 38;
+
 const useStyles = makeStyles((c) => ({
   wrap: { padding: 12, gap: 12 },
   pad: { paddingVertical: 8 },
@@ -342,13 +345,13 @@ const useStyles = makeStyles((c) => ({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    height: TOOL_SIZE, // same as the location buttons next to it
     paddingHorizontal: 10,
-    paddingVertical: 8,
     borderRadius: 10,
     backgroundColor: c.surfaceAlt,
   },
   stopText: { flex: 1, fontSize: 14, fontWeight: '600', color: c.text },
-  locateButton: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: c.surfaceAlt },
+  locateButton: { width: TOOL_SIZE, height: TOOL_SIZE, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: c.surfaceAlt },
   pressed: { opacity: 0.6 },
   error: { fontSize: 12, color: c.danger },
   section: { gap: 6 },
