@@ -57,6 +57,8 @@ export const el: Record<TranslationKey, string> = {
   'roomsWidget.empty': 'Καμία καρφιτσωμένη αίθουσα. Πατήστε το αστέρι μιας αίθουσας στην καρτέλα Αίθουσες.',
   'roomsWidget.now': 'ΤΩΡΑ',
   'roomsWidget.at': 'ΣΤΙΣ {time}',
+  'roomsWidget.colNow': 'ΤΩΡΑ',
+  'roomsWidget.colNext': 'ΜΕΤΑ',
   'roomsWidget.free': 'Ελεύθερη',
   'roomsWidget.busy': 'Κατειλημμένη',
   'roomsWidget.untilFree': 'ελεύθερη στις {time}',

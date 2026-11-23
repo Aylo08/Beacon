@@ -56,6 +56,8 @@ export const nl: Record<TranslationKey, string> = {
   'roomsWidget.empty': 'Geen vastgezette zalen. Tik op de ster van een zaal in het tabblad Zalen.',
   'roomsWidget.now': 'NU',
   'roomsWidget.at': 'OM {time}',
+  'roomsWidget.colNow': 'NU',
+  'roomsWidget.colNext': 'STRAKS',
   'roomsWidget.free': 'Vrij',
   'roomsWidget.busy': 'Bezet',
   'roomsWidget.untilFree': 'vrij om {time}',

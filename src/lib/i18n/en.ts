@@ -66,6 +66,8 @@ export const en: Record<TranslationKey, string> = {
   'roomsWidget.empty': 'No pinned rooms. Tap a room’s star in the Rooms tab.',
   'roomsWidget.now': 'NOW',
   'roomsWidget.at': 'AT {time}',
+  'roomsWidget.colNow': 'NOW',
+  'roomsWidget.colNext': 'NEXT',
   'roomsWidget.free': 'Free',
   'roomsWidget.busy': 'Busy',
   'roomsWidget.untilFree': 'free at {time}',

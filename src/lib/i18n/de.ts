@@ -56,6 +56,8 @@ export const de: Record<TranslationKey, string> = {
   'roomsWidget.empty': 'Keine angehefteten Räume. Tippe im Tab Räume auf den Stern eines Raums.',
   'roomsWidget.now': 'JETZT',
   'roomsWidget.at': 'UM {time}',
+  'roomsWidget.colNow': 'JETZT',
+  'roomsWidget.colNext': 'DANACH',
   'roomsWidget.free': 'Frei',
   'roomsWidget.busy': 'Belegt',
   'roomsWidget.untilFree': 'frei ab {time}',

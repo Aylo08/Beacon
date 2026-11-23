@@ -69,8 +69,13 @@ function PinnedRooms({ token, rooms, onUnauthorized }: { token: string; rooms: P
     <View style={styles.wrap}>
       <View style={styles.headerRow}>
         <View style={styles.nameCol} />
-        <Text style={styles.colTitle}>{t('roomsWidget.now')}</Text>
-        <Text style={styles.colTitle}>{t('roomsWidget.at', { time: hhmm(later) })}</Text>
+        <Text style={styles.colTitle} accessibilityLabel={t('roomsWidget.now')}>
+          {t('roomsWidget.colNow')}
+        </Text>
+        <Text style={styles.colTitle} accessibilityLabel={t('roomsWidget.at', { time: hhmm(later) })}>
+          {t('roomsWidget.colNext')}
+        </Text>
+        <View style={styles.changeCol} />
       </View>
       {rooms.map((r, i) => (
         <RoomRow key={r.code} room={r} state={get(r.code)} now={now} later={later} divider={i > 0} />
@@ -116,7 +121,15 @@ function RoomRow({
         </Text>
       </View>
       {slots ? (
-        slots.map((s, i) => <SlotCell key={i} slot={s} />)
+        <>
+          <SlotCell slot={slots[0]} />
+          <SlotCell slot={slots[1]} />
+          <Text style={[styles.change, styles.changeCol]} numberOfLines={2}>
+            {slots[1].until != null
+              ? t(slots[1].busy ? 'roomsWidget.untilFree' : 'roomsWidget.untilBusy', { time: hhmm(slots[1].until) })
+              : ''}
+          </Text>
+        </>
       ) : state === 'error' ? (
         <Text style={[styles.muted, styles.span]}>{t('rooms.loadError')}</Text>
       ) : (
@@ -128,20 +141,15 @@ function RoomRow({
   );
 }
 
+/** ✓ free / ✕ busy (the row's accessibility label says it in words). */
 function SlotCell({ slot }: { slot: Slot }) {
   const styles = useStyles();
+  const { colors } = useAppTheme();
   return (
     <View style={styles.cell}>
-      <View style={[styles.pill, slot.busy ? styles.busy : styles.free]}>
-        <Text style={[styles.pillText, slot.busy ? styles.busyText : styles.freeText]}>
-          {slot.busy ? t('roomsWidget.busy') : t('roomsWidget.free')}
-        </Text>
+      <View style={[styles.badge, slot.busy ? styles.busy : styles.free]}>
+        <Icon name={slot.busy ? 'close-line' : 'check-line'} size={14} color={slot.busy ? colors.busyText : colors.freeText} />
       </View>
-      {slot.until != null && (
-        <Text style={styles.until} numberOfLines={1}>
-          {t(slot.busy ? 'roomsWidget.untilFree' : 'roomsWidget.untilBusy', { time: hhmm(slot.until) })}
-        </Text>
-      )}
     </View>
   );
 }
@@ -150,22 +158,21 @@ const useStyles = makeStyles((c) => ({
   wrap: { paddingHorizontal: 12, paddingVertical: 8 },
   empty: { padding: 12 },
   emptyText: { fontSize: 13, color: c.textMuted },
-  headerRow: { flexDirection: 'row', alignItems: 'center', paddingBottom: 4 },
-  colTitle: { flex: 1, fontSize: 11, fontWeight: '700', color: c.textMuted, letterSpacing: 0.3, textAlign: 'center' },
-  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingBottom: 4 },
+  colTitle: { width: 52, fontSize: 10, fontWeight: '700', color: c.textMuted, letterSpacing: 0.3, textAlign: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7 },
   divider: { borderTopWidth: 1, borderColor: c.border },
   pressed: { opacity: 0.6 },
   nameCol: { flex: 1.3 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingRight: 6 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   name: { flexShrink: 1, fontSize: 14, fontWeight: '600', color: c.text },
-  cell: { flex: 1, alignItems: 'center', gap: 2 },
-  span: { flex: 2, alignItems: 'center' },
-  pill: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
+  cell: { width: 52, alignItems: 'center' },
+  changeCol: { flex: 1 },
+  change: { fontSize: 12, color: c.textMuted, fontVariant: ['tabular-nums'] },
+  /** Loading / error message over both icon columns (2 × 52 + gap). */
+  span: { width: 110, alignItems: 'center' },
+  badge: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   free: { backgroundColor: c.free },
   busy: { backgroundColor: c.busy },
-  pillText: { fontSize: 12, fontWeight: '700' },
-  freeText: { color: c.freeText },
-  busyText: { color: c.busyText },
-  until: { fontSize: 11, color: c.textMuted, fontVariant: ['tabular-nums'] },
   muted: { fontSize: 12, color: c.textMuted, textAlign: 'center' },
 }));

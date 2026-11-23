@@ -58,6 +58,8 @@ export const grc: Record<TranslationKey, string> = {
   'roomsWidget.empty': 'Οὐδεμία αἴθουσα πέπηγεν. Ἅψαι τοῦ ἀστέρος αἰθούσης ἐν ταῖς Αἰθούσαις.',
   'roomsWidget.now': 'ΝΥΝ',
   'roomsWidget.at': 'ΩΡΑ {time}',
+  'roomsWidget.colNow': 'ΝΥΝ',
+  'roomsWidget.colNext': 'ΕΠΕΙΤΑ',
   'roomsWidget.free': 'Ἐλευθέρα',
   'roomsWidget.busy': 'Κατεχομένη',
   'roomsWidget.untilFree': 'ἐλευθέρα ὥρᾳ {time}',

@@ -57,6 +57,8 @@ export const nb: Record<TranslationKey, string> = {
   'roomsWidget.empty': 'Ingen festede rom. Trykk på stjernen til et rom i fanen Rom.',
   'roomsWidget.now': 'NÅ',
   'roomsWidget.at': 'KL. {time}',
+  'roomsWidget.colNow': 'NÅ',
+  'roomsWidget.colNext': 'SENERE',
   'roomsWidget.free': 'Ledig',
   'roomsWidget.busy': 'Opptatt',
   'roomsWidget.untilFree': 'ledig kl. {time}',

@@ -56,6 +56,8 @@ export const es: Record<TranslationKey, string> = {
   'roomsWidget.empty': 'Ninguna aula fijada. Toca la estrella de un aula en la pestaña Aulas.',
   'roomsWidget.now': 'AHORA',
   'roomsWidget.at': 'A LAS {time}',
+  'roomsWidget.colNow': 'AHORA',
+  'roomsWidget.colNext': 'LUEGO',
   'roomsWidget.free': 'Libre',
   'roomsWidget.busy': 'Ocupada',
   'roomsWidget.untilFree': 'libre a las {time}',

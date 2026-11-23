@@ -56,6 +56,8 @@ export const ja: Record<TranslationKey, string> = {
   'roomsWidget.empty': 'ピン留めした教室はありません。「教室」タブで教室の星をタップしてください。',
   'roomsWidget.now': '現在',
   'roomsWidget.at': '{time}',
+  'roomsWidget.colNow': '現在',
+  'roomsWidget.colNext': '次',
   'roomsWidget.free': '空き',
   'roomsWidget.busy': '使用中',
   'roomsWidget.untilFree': '{time}に空き',

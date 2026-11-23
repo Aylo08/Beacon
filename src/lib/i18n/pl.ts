@@ -57,6 +57,8 @@ export const pl: Record<TranslationKey, string> = {
   'roomsWidget.empty': 'Brak przypiętych sal. Dotknij gwiazdki sali w karcie Sale.',
   'roomsWidget.now': 'TERAZ',
   'roomsWidget.at': 'O {time}',
+  'roomsWidget.colNow': 'TERAZ',
+  'roomsWidget.colNext': 'POTEM',
   'roomsWidget.free': 'Wolna',
   'roomsWidget.busy': 'Zajęta',
   'roomsWidget.untilFree': 'wolna od {time}',

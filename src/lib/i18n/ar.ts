@@ -57,6 +57,8 @@ export const ar: Record<TranslationKey, string> = {
   'roomsWidget.empty': 'لا توجد قاعات مثبتة. اضغط على نجمة قاعة في تبويب القاعات.',
   'roomsWidget.now': 'الآن',
   'roomsWidget.at': 'في {time}',
+  'roomsWidget.colNow': 'الآن',
+  'roomsWidget.colNext': 'لاحقًا',
   'roomsWidget.free': 'متاحة',
   'roomsWidget.busy': 'مشغولة',
   'roomsWidget.untilFree': 'متاحة في {time}',

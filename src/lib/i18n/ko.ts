@@ -56,6 +56,8 @@ export const ko: Record<TranslationKey, string> = {
   'roomsWidget.empty': '고정한 강의실이 없습니다. 강의실 탭에서 강의실의 별을 누르세요.',
   'roomsWidget.now': '지금',
   'roomsWidget.at': '{time}',
+  'roomsWidget.colNow': '지금',
+  'roomsWidget.colNext': '다음',
   'roomsWidget.free': '비어 있음',
   'roomsWidget.busy': '사용 중',
   'roomsWidget.untilFree': '{time} 비어 있음',

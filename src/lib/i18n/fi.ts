@@ -57,6 +57,8 @@ export const fi: Record<TranslationKey, string> = {
   'roomsWidget.empty': 'Ei kiinnitettyjä saleja. Napauta salin tähteä Salit-välilehdellä.',
   'roomsWidget.now': 'NYT',
   'roomsWidget.at': 'KLO {time}',
+  'roomsWidget.colNow': 'NYT',
+  'roomsWidget.colNext': 'SITTEN',
   'roomsWidget.free': 'Vapaa',
   'roomsWidget.busy': 'Varattu',
   'roomsWidget.untilFree': 'vapaa klo {time}',

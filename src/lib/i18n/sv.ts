@@ -56,6 +56,8 @@ export const sv: Record<TranslationKey, string> = {
   'roomsWidget.empty': 'Inga fästa salar. Tryck på en sals stjärna i fliken Salar.',
   'roomsWidget.now': 'NU',
   'roomsWidget.at': 'KL. {time}',
+  'roomsWidget.colNow': 'NU',
+  'roomsWidget.colNext': 'SEDAN',
   'roomsWidget.free': 'Ledig',
   'roomsWidget.busy': 'Upptagen',
   'roomsWidget.untilFree': 'ledig kl. {time}',

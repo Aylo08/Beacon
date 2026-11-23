@@ -58,6 +58,8 @@ export const la: Record<TranslationKey, string> = {
   'roomsWidget.empty': 'Nulla auditoria fixa. Stellam auditorii tange in tabula Auditoria.',
   'roomsWidget.now': 'NUNC',
   'roomsWidget.at': 'HORA {time}',
+  'roomsWidget.colNow': 'NUNC',
+  'roomsWidget.colNext': 'MOX',
   'roomsWidget.free': 'Vacuum',
   'roomsWidget.busy': 'Occupatum',
   'roomsWidget.untilFree': 'vacuum hora {time}',

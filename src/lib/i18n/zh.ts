@@ -57,6 +57,8 @@ export const zh: Record<TranslationKey, string> = {
   'roomsWidget.empty': '还没有收藏的教室。在“教室”页点击教室的星标。',
   'roomsWidget.now': '现在',
   'roomsWidget.at': '{time}',
+  'roomsWidget.colNow': '现在',
+  'roomsWidget.colNext': '稍后',
   'roomsWidget.free': '空闲',
   'roomsWidget.busy': '占用',
   'roomsWidget.untilFree': '{time} 空闲',

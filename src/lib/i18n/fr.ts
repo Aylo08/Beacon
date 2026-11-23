@@ -68,6 +68,8 @@ export const fr = {
   'roomsWidget.empty': 'Aucune salle épinglée. Touchez l’étoile d’une salle dans l’onglet Salles.',
   'roomsWidget.now': 'MAINTENANT',
   'roomsWidget.at': 'À {time}',
+  'roomsWidget.colNow': 'LÀ',
+  'roomsWidget.colNext': 'APRÈS',
   'roomsWidget.free': 'Libre',
   'roomsWidget.busy': 'Occupée',
   'roomsWidget.untilFree': 'libre à {time}',
