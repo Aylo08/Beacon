@@ -1,6 +1,6 @@
 // Bus preferences shared by the settings, the bus widget and the now bar:
 // the user's home stop (any stop of the kept lines), which Centre-ville stop
-// (St Lazare / Université) and Agroparc stop (Grand Avignon / Montaigne) they
+// (St Lazare / Université) and Agroparc stop (Grand Avignon / Montaigne / Agrosciences) they
 // use, and the stop shown by the bus widget (null = the Agroparc stop).
 import { useEffect } from 'react';
 import { CAMPUS_STOPS, CENTRE_STOPS, LEGACY_CENTRE_STOP, type CampusStop, type CentreStop } from './bus';

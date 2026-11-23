@@ -13,6 +13,7 @@ import * as Location from 'expo-location';
 import { Icon } from '../components/Icon';
 import { StopPicker, type PinnedStop } from '../components/StopPicker';
 import {
+  campusChangeStop,
   CAMPUS_STOPS,
   CENTRE_STOPS,
   nearestStop,
@@ -113,15 +114,17 @@ export function BusWidget() {
   const [here, setHere] = useKnownPosition(focused);
 
   const stop = widgetStop ?? campusStop;
+  // From Centre-ville, the bus to Agroparc is a campus change (Agrosciences → Grand Avignon, see campusChangeStop).
+  const agroparcTarget = samePlace(stop, centreStop) ? campusChangeStop(campusStop) : campusStop;
   const list = useMemo(
-    () => timetable && stopList(timetable, rt, stop, [centreStop, campusStop].filter((x) => !samePlace(x, stop)), now),
-    [timetable, rt, stop, centreStop, campusStop, now],
+    () => timetable && stopList(timetable, rt, stop, [centreStop, agroparcTarget].filter((x) => !samePlace(x, stop)), now),
+    [timetable, rt, stop, centreStop, agroparcTarget, now],
   );
   const placeList = places(prefs);
   // Icon of the place button: the nearest place once a position is known, else a campus.
   const guessed = timetable && here ? nearestPlace(timetable, placeList, here) : null;
   const placeIcon = guessed?.kind === 'home' ? 'home-5-line' : 'graduation-cap-line';
-  // Home first, then all four campus stops (each on its own row).
+  // Home first, then every campus stop (each on its own row).
   const pinnedStops: PinnedStop[] = [
     ...(homeStop ? [{ name: homeStop, icon: 'home-5-line' as const, a11y: t('bus.homeStopA11y', { stop: homeStop }) }] : []),
     ...[...CENTRE_STOPS, ...CAMPUS_STOPS].map((name) => ({ name, icon: 'graduation-cap-line' as const, a11y: t('bus.campusStopA11y', { stop: name }) })),

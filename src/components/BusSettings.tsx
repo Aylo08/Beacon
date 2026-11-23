@@ -1,5 +1,5 @@
 // Settings: home bus stop (any stop of the kept lines), Centre-ville stop (St Lazare / Université)
-// and Agroparc stop (Grand Avignon / Montaigne).
+// and Agroparc stop (Grand Avignon / Montaigne / Agrosciences).
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { CAMPUS_STOPS, CENTRE_STOPS } from '../lib/bus';
@@ -75,7 +75,9 @@ function Segmented<T extends string>({ options, value, onChange }: { options: re
             accessibilityState={{ selected }}
             style={[styles.segment, selected && styles.segmentSelected]}
           >
-            <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>{o}</Text>
+            <Text style={[styles.segmentText, selected && styles.segmentTextSelected]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+              {o}
+            </Text>
           </Pressable>
         );
       })}
@@ -93,7 +95,7 @@ const useStyles = makeStyles((c) => ({
   hint: { fontSize: 12, color: c.textMuted },
   value: { fontSize: 14, color: c.textSecondary, maxWidth: 140 },
   segmented: { flexDirection: 'row', backgroundColor: c.surfaceAlt, borderRadius: 10, padding: 3, gap: 3 },
-  segment: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 8 },
+  segment: { flex: 1, alignItems: 'center', paddingVertical: 8, paddingHorizontal: 4, borderRadius: 8 },
   segmentSelected: { backgroundColor: c.inverseBg },
   segmentText: { fontSize: 14, color: c.textSecondary },
   segmentTextSelected: { color: c.inverseText, fontWeight: '600' },

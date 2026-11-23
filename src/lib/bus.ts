@@ -33,8 +33,13 @@ export const compareLines = (a: string, b: string) => {
 export const CENTRE_STOPS = ['St Lazare', 'Université'] as const;
 export type CentreStop = (typeof CENTRE_STOPS)[number];
 /** Agroparc campus stops (the user picks one). */
-export const CAMPUS_STOPS = ['Grand Avignon', 'Montaigne'] as const;
+export const CAMPUS_STOPS = ['Grand Avignon', 'Montaigne', 'Agrosciences'] as const;
 export type CampusStop = (typeof CAMPUS_STOPS)[number];
+/**
+ * Agroparc stop used when changing campus. Agrosciences is only served by line 04, which doesn't
+ * go to Centre-ville: from there, campus changes go through Grand Avignon (C3) instead.
+ */
+export const campusChangeStop = (campusStop: CampusStop): CampusStop => (campusStop === 'Agrosciences' ? 'Grand Avignon' : campusStop);
 /** Name stored before St Lazare and Université were split (old prefs). */
 export const LEGACY_CENTRE_STOP = 'St Lazare / Université';
 

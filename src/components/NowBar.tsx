@@ -17,7 +17,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { EdgeInsets } from 'react-native-safe-area-context';
 import { ActivityIndicator, Text, View } from 'react-native';
-import { nextDepartures, samePlace, type Departure, type Timetable } from '../lib/bus';
+import { campusChangeStop, nextDepartures, samePlace, type CampusStop, type Departure, type Timetable } from '../lib/bus';
 import { useBusPrefs } from '../lib/busPrefs';
 import { attendancePercent, campusOfRoom, isRestoOpen, RESTOS, restoForCampus, spansLunch, type Attendance } from '../lib/crous';
 import type { RoomEvent } from '../lib/edt';
@@ -106,12 +106,20 @@ function useRoomCampuses(token: string | null | undefined, rooms: (string | unde
   return (room: string | undefined): string | null | undefined => (room ? (overrides?.[room] ?? known[room]) : null);
 }
 
-/** Bus stop serving a campus: the chosen Centre-ville stop for Centre-ville, the chosen Agroparc stop otherwise. */
-function stopForCampus(campus: string | null | undefined, stops: { centreStop: string; campusStop: string }): string | null {
+/**
+ * Bus stop serving a campus: the chosen Centre-ville stop for Centre-ville, the chosen Agroparc stop
+ * otherwise (`campusChange`: the Agroparc stop with a bus to Centre-ville, see campusChangeStop).
+ */
+function stopForCampus(
+  campus: string | null | undefined,
+  stops: { centreStop: string; campusStop: CampusStop },
+  campusChange = false,
+): string | null {
   if (!campus) return null;
   const c = normalizeSearch(campus);
   if (c.includes('nondefini')) return null;
-  return c.includes('centre') ? stops.centreStop : stops.campusStop;
+  if (c.includes('centre')) return stops.centreStop;
+  return campusChange ? campusChangeStop(stops.campusStop) : stops.campusStop;
 }
 
 type BusPlan = { kind: 'travel' | 'toCampus' | 'home'; from: string; to: string; context?: string; arriveBy?: number };
@@ -169,8 +177,8 @@ export function NowBar({ focused, insets }: { focused: boolean; insets: EdgeInse
   let bus: BusPlan | null = null;
   let needsHomeStop = false;
   if (!current) {
-    const travelFrom = slot && stopForCampus(campusOf(slotPrev?.room), busPrefs);
-    const travelTo = slot && stopForCampus(campusOf(slotNext?.room), busPrefs);
+    const travelFrom = slot && stopForCampus(campusOf(slotPrev?.room), busPrefs, true);
+    const travelTo = slot && stopForCampus(campusOf(slotNext?.room), busPrefs, true);
     if (slot && travelFrom && travelTo && !samePlace(travelFrom, travelTo)) {
       bus = { kind: 'travel', from: travelFrom, to: travelTo, context: slotNext?.subject, arriveBy: slotNext?.start };
     } else if (beforeFirst || afterLast) {
