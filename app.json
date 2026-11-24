@@ -28,6 +28,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "allowBackup": false,
+      "permissions": ["android.permission.REQUEST_INSTALL_PACKAGES"],
       "blockedPermissions": ["android.permission.WRITE_SETTINGS"],
       "package": "com.geoffreygx.beacon"
     },

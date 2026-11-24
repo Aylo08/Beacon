@@ -1,5 +1,5 @@
 // "Réglages": theme and language, bus stops, Izly account, anonymous statistics (only in builds with a
-// Beacon server), university account. The "Développement" section only
+// Beacon server), updates (Android), university account. The "Développement" section only
 // exists in development builds (`__DEV__` is false and dropped in release).
 import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
@@ -11,6 +11,7 @@ import { BusSettings } from '../components/BusSettings';
 import { Icon } from '../components/Icon';
 import { LanguagePicker } from '../components/LanguagePicker';
 import { OptionSheet } from '../components/OptionSheet';
+import { UpdateSettings } from '../components/UpdateSettings';
 import { setDebugPanel, useDebug } from '../lib/debugOverride';
 import { wipeAllData } from '../debug/wipe';
 import { useSession } from '../lib/sessionContext';
@@ -19,6 +20,7 @@ import { LANGUAGE_NAMES, setForcedLang, t, useForcedLang, type Lang } from '../l
 import { clearIzly, useIzlyLinked } from '../lib/izly';
 import { setPayLockEnabled, usePayLockEnabled } from '../lib/payLock';
 import { analyticsAvailable, setAnalyticsEnabled, useAnalyticsEnabled } from '../lib/analytics';
+import { updatesSupported } from '../lib/appUpdate';
 
 export default function SettingsScreen() {
   const styles = useStyles();
@@ -97,6 +99,12 @@ export default function SettingsScreen() {
               accessibilityLabel={t('settings.analytics')}
             />
           </View>
+        </Section>
+      )}
+
+      {updatesSupported && (
+        <Section title={t('settings.updates')}>
+          <UpdateSettings />
         </Section>
       )}
 

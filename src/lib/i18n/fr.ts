@@ -332,6 +332,22 @@ export const fr = {
   'settings.privacy': 'Confidentialité',
   'settings.analytics': 'Statistiques anonymes',
   'settings.analyticsHint': 'Une fois par jour, Beacon envoie un identifiant aléatoire, la version de l’app et celle du système, pour compter ses utilisateurs. Rien d’autre : ni compte, ni emploi du temps, ni position. Désactiver efface aussi ces données du serveur.',
+  'update.title': 'Mise à jour disponible',
+  'update.message': 'Beacon {version} est disponible. Elle sera téléchargée depuis GitHub (environ {size} Mo), puis Android vous proposera de l’installer.',
+  'update.later': 'Plus tard',
+  'update.install': 'Mettre à jour',
+  'update.downloadingToast': 'Téléchargement de la mise à jour…',
+  'update.failed': 'La mise à jour n’a pas pu être téléchargée ou installée. Réessayez depuis les Réglages.',
+  'settings.updates': 'Mises à jour',
+  'settings.autoUpdate': 'Rechercher automatiquement',
+  'settings.autoUpdateHint': 'Une fois par jour, Beacon demande à GitHub la dernière version publiée. Rien d’autre n’est envoyé.',
+  'settings.currentVersion': 'Version {version}',
+  'settings.upToDate': 'à jour',
+  'settings.updateFailed': 'vérification impossible',
+  'settings.updateAvailable': 'version {version} disponible',
+  'settings.updateDownloading': 'Téléchargement… {percent} %',
+  'settings.installUpdate': 'Installer la version {version}',
+  'settings.checkUpdates': 'Rechercher une mise à jour',
 } as const;
 
 export type TranslationKey = keyof typeof fr;
