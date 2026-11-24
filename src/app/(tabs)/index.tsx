@@ -1,4 +1,4 @@
-// "Accueil": contextual header (now bar), the student card, widgets, and at
+// "Accueil": contextual header (now bar), the update banner (Android), the student card, widgets, and at
 // the bottom the widget editor and the settings button. In development builds a
 // debug panel can be shown at the top to fake now-bar scenarios.
 import { useState, type ComponentType } from 'react';
@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../../components/Icon';
 import { NowBar } from '../../components/NowBar';
+import { UpdateBanner } from '../../components/UpdateBanner';
 import { useDebug } from '../../lib/debugOverride';
 import { makeStyles, useAppTheme } from '../../lib/theme';
 import { WIDGETS, widgetById } from '../../widgets/registry';
@@ -41,6 +42,7 @@ export default function HomeScreen() {
 
       <View style={[styles.content, side]}>
         {DebugPanel && debugPanel && <DebugPanel />}
+        <UpdateBanner />
 
         <Pressable
           onPress={() => router.push('/card')}

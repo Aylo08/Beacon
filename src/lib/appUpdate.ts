@@ -4,7 +4,8 @@
 // the app comes back to the foreground) the app asks GitHub for the latest release
 // (GET api.github.com/repos/<repo>/releases/latest: no account, no identifier, nothing about the user)
 // and compares its versionCode, read from the release notes ("Android versionCode N"), with this
-// build's. A newer one → an alert offers to download the APK; once downloaded and checked against the
+// build's. A newer one → a banner at the top of the home screen (`UpdateBanner`) offers to download
+// the APK; once downloaded and checked against the
 // SHA-256 digest GitHub publishes for the asset, it's handed to the Android package installer
 // (ACTION_VIEW through expo-file-system's FileProvider), which also checks that the APK is signed with
 // the same key as the installed app. The first time, Android asks the user to allow "Install unknown
@@ -13,10 +14,9 @@
 // Turned off in Réglages → Mises à jour (the manual "check" button still works). The automatic check
 // is off in development builds and in local release builds without a versionCode from CI.
 import { useEffect } from 'react';
-import { Alert, AppState, Platform, ToastAndroid } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { Directory, File, Paths } from 'expo-file-system';
-import { t } from './i18n';
 import { getPref, setPref } from './prefs';
 import { getItem, setItem } from './storage';
 import { createStore } from './store';
@@ -56,9 +56,11 @@ export type UpdateStatus =
   | { kind: 'ready'; release: Release } // downloaded, installer not opened yet (app was in background)
   | { kind: 'error'; release?: Release };
 
-const store = createStore<{ status: UpdateStatus; enabled: boolean | undefined }>({
+/** `banner`: the home-screen banner is shown (found by the automatic check, hidden by "Later"). */
+const store = createStore<{ status: UpdateStatus; enabled: boolean | undefined; banner: boolean }>({
   status: { kind: 'idle' },
   enabled: undefined,
+  banner: false,
 });
 const setStatus = (status: UpdateStatus) => store.set({ status });
 
@@ -171,7 +173,6 @@ export async function installUpdate(release: Release) {
   const s = store.get().status.kind;
   if (s === 'downloading') return;
   setStatus({ kind: 'downloading', release, progress: 0 });
-  if (Platform.OS === 'android') ToastAndroid.show(t('update.downloadingToast'), ToastAndroid.SHORT);
   try {
     const file = apkFile(release);
     const valid = async () =>
@@ -199,20 +200,28 @@ export async function installUpdate(release: Release) {
     }
     await openInstaller(file, release);
   } catch {
-    setStatus({ kind: 'error', release });
-    Alert.alert(t('update.title'), t('update.failed'));
+    setStatus({ kind: 'error', release }); // shown by the banner / Réglages
   }
 }
 
-function promptUpdate(release: Release) {
-  Alert.alert(
-    t('update.title'),
-    t('update.message', { version: release.version, size: Math.max(1, Math.round(release.size / 1e6)) }),
-    [
-      { text: t('update.later'), style: 'cancel' },
-      { text: t('update.install'), onPress: () => installUpdate(release) },
-    ],
-  );
+/** "Later" on the banner: hidden until the next day's check finds the update again. */
+export const dismissUpdateBanner = () => store.set({ banner: false });
+
+/**
+ * Dev only (Réglages → Développement): shows the update banner whatever the versions are. Uses the real
+ * latest release so "Update" really downloads it (the installer then refuses it if this build has
+ * another signature); falls back to a fake release when GitHub can't be reached.
+ */
+export async function debugShowUpdatePrompt() {
+  if (!__DEV__) return;
+  let release: Release | null = null;
+  try {
+    release = await fetchLatest();
+  } catch {
+    // Offline: fake release below.
+  }
+  release ??= { version: '99.0.0', code: 999_999, url: '', size: 50e6, name: 'Beacon-debug.apk' };
+  store.set({ status: { kind: 'available', release }, banner: true });
 }
 
 let autoRunning = false;
@@ -234,7 +243,7 @@ async function autoCheck() {
     const release = await checkForUpdate();
     if (store.get().status.kind === 'error') return; // offline: retried on the next foreground
     await setItem(LAST_CHECK_KEY, day);
-    if (release) promptUpdate(release);
+    if (release) store.set({ banner: true });
   } catch {
     // Retried on the next launch / foreground.
   } finally {
@@ -256,6 +265,13 @@ export function useAutoUpdate() {
 
 export function useUpdateStatus(): UpdateStatus {
   return store.use().status;
+}
+
+/** What the home banner shows, or null when it's hidden or there's nothing to offer. */
+export function useUpdateBanner(): { status: UpdateStatus; release: Release } | null {
+  const { status, banner } = store.use();
+  const release = 'release' in status ? status.release : undefined;
+  return banner && release ? { status, release } : null;
 }
 
 export function useAutoUpdateEnabled(): boolean | undefined {

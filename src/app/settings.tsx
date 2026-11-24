@@ -20,7 +20,7 @@ import { LANGUAGE_NAMES, setForcedLang, t, useForcedLang, type Lang } from '../l
 import { clearIzly, useIzlyLinked } from '../lib/izly';
 import { setPayLockEnabled, usePayLockEnabled } from '../lib/payLock';
 import { analyticsAvailable, setAnalyticsEnabled, useAnalyticsEnabled } from '../lib/analytics';
-import { updatesSupported } from '../lib/appUpdate';
+import { debugShowUpdatePrompt, updatesSupported } from '../lib/appUpdate';
 
 export default function SettingsScreen() {
   const styles = useStyles();
@@ -159,6 +159,10 @@ export default function SettingsScreen() {
             }}
             onClose={() => setDebugLangOpen(false)}
           />
+          {updatesSupported && (
+            // Debug-only label, not translated.
+            <OutlineButton icon="refresh-line" label="Afficher la popup de mise à jour" onPress={debugShowUpdatePrompt} />
+          )}
           <Text style={styles.hint}>{t('settings.wipeHint')}</Text>
           {wiping ? (
             <ActivityIndicator color={colors.primary} />

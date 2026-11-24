@@ -23,7 +23,7 @@ export function UpdateSettings() {
   const release = 'release' in status ? status.release : undefined;
   let line: string | null = null;
   if (status.kind === 'upToDate') line = t('settings.upToDate');
-  else if (status.kind === 'error') line = t('settings.updateFailed');
+  else if (status.kind === 'error') line = release ? t('update.failed') : t('settings.updateFailed');
   else if (release) line = t('settings.updateAvailable', { version: release.version });
 
   return (
