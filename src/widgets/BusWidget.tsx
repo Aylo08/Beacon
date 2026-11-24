@@ -12,10 +12,11 @@
 // stop is selected, the stop list is open, or it is already on the device.
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
-import { useIsFocused } from 'expo-router';
+import { router, useIsFocused } from 'expo-router';
 import * as Location from 'expo-location';
 import { Segmented } from '../components/Buttons';
 import { Icon } from '../components/Icon';
+import { LineBadge } from '../components/LineBadge';
 import { StopPicker, type PinnedStop } from '../components/StopPicker';
 import { CAMPUS_STOPS, CENTRE_STOPS, distanceM, nearestStop, stopDepartures, type Departure, type Timetable } from '../lib/bus';
 import { setDestination, setWidgetStop, useBusPrefs, type BusPrefs } from '../lib/busPrefs';
@@ -24,8 +25,9 @@ import { useDebug, withDebugLimited } from '../lib/debugOverride';
 import { t, tn } from '../lib/i18n';
 import { planFromStop, type Journey, type RideLeg } from '../lib/journey';
 import { isZouStopKey, stopCatalog, stopLabel, type CatalogStop } from '../lib/stopCatalog';
-import { BRAND, makeStyles, useAppTheme } from '../lib/theme';
-import { formatMinutes, parisParts } from '../lib/time';
+import { makeStyles, useAppTheme } from '../lib/theme';
+import { formatDuration, formatTime } from '../lib/time';
+import { openTrip } from '../lib/tripStore';
 import { useRealtime, useTimetable, useZouTimetable } from '../lib/useBus';
 import { useNow } from '../lib/useLive';
 import { zouCached, zouDepartures } from '../lib/zou';
@@ -34,13 +36,7 @@ import { zouCached, zouDepartures } from '../lib/zou';
 const TRIPS = 2;
 const ROWS = 5;
 
-const hhmm = (ms: number) => formatMinutes(parisParts(new Date(ms)).minutes);
-
-/** "35 min" / "1 h 05". */
-function formatDuration(ms: number) {
-  const m = Math.max(0, Math.round(ms / 60_000));
-  return m < 60 ? t('duration.min', { m }) : t('duration.hours', { h: Math.floor(m / 60), mm: String(m % 60).padStart(2, '0') });
-}
+const hhmm = formatTime;
 
 /** "Maintenant", "12 min", or the time when an hour or more away. */
 function waitLabel(at: number, now: number) {
@@ -254,7 +250,15 @@ export function BusWidget() {
             ) : trips.length === 0 ? (
               <Text style={styles.muted}>{t('bus.trip.none', { campus: campus.name })}</Text>
             ) : (
-              trips.map((j) => <TripRow key={`${j.departure}-${j.arrival}`} journey={j} now={now} />)
+              trips.map((j) => (
+                <TripRow
+                  key={`${j.departure}-${j.arrival}`}
+                  journey={j}
+                  now={now}
+                  from={label.town ? `${label.name} · ${label.town}` : label.name}
+                  to={campus.name}
+                />
+              ))
             )}
             {zouError && !zouStop && needZou && <Text style={styles.muted}>{t('bus.trip.zouError', { error: zouError })}</Text>}
           </View>
@@ -315,28 +319,8 @@ function ToolButton({
   );
 }
 
-/** Line badge in the line's colours; ZOU! lines get the network's tag in front. */
-function LineBadge({ line, color, zou, train, limited }: { line: string; color: { bg: string; text: string }; zou: boolean; train?: boolean; limited?: boolean }) {
-  const styles = useStyles();
-  return (
-    <View style={styles.badgeGroup}>
-      {zou && (
-        <View style={styles.zouTag}>
-          <Text style={styles.zouTagText}>ZOU!</Text>
-        </View>
-      )}
-      <View style={[styles.badge, { backgroundColor: color.bg }]}>
-        {train && <Icon name="train-line" size={12} color={color.text} />}
-        <Text style={[styles.badgeText, { color: color.text }]}>{line}</Text>
-        {/* Limited-stop trips ("DIRECT") get a bolt next to the line number (the row's label spells it out). */}
-        {limited && <Icon name="flashlight-fill" size={12} color={color.text} />}
-      </View>
-    </View>
-  );
-}
-
-/** One trip to the campus: times, duration, lines and changes. */
-function TripRow({ journey, now }: { journey: Journey; now: number }) {
+/** One trip to the campus: times, duration, lines and changes; pressing it opens the full trip. */
+function TripRow({ journey, now, from, to }: { journey: Journey; now: number; from: string; to: string }) {
   const styles = useStyles();
   const { colors } = useAppTheme();
   // Consecutive rides on the same line (a line split into two trips, e.g. 04 at Montfavet) show as one.
@@ -354,9 +338,14 @@ function TripRow({ journey, now }: { journey: Journey; now: number }) {
           : tn('bus.trip.transfers', rides.length - 1);
   const lines = rides.map((r) => (r.network === 'zou' ? `ZOU! ${r.line}` : r.line)).join(', ');
   return (
-    <View
-      style={styles.trip}
-      accessible
+    <Pressable
+      onPress={() => {
+        openTrip({ journey, from, to });
+        router.push('/trip');
+      }}
+      style={({ pressed }) => [styles.trip, pressed && styles.pressed]}
+      accessibilityRole="button"
+      accessibilityHint={t('bus.trip.open')}
       accessibilityLabel={t('bus.trip.a11y', {
         departure: hhmm(journey.departure),
         arrival: hhmm(journey.arrival),
@@ -386,8 +375,9 @@ function TripRow({ journey, now }: { journey: Journey; now: number }) {
         <Text style={[styles.muted, styles.flex]} numberOfLines={1}>
           {changes}
         </Text>
+        <Icon name="arrow-right-s-line" size={18} color={colors.textMuted} />
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -477,20 +467,6 @@ const useStyles = makeStyles((c) => ({
   error: { fontSize: 12, color: c.danger },
   section: { gap: 6 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  badgeGroup: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  zouTag: { paddingHorizontal: 4, paddingVertical: 3, borderRadius: 4, backgroundColor: BRAND.zou },
-  zouTagText: { fontSize: 10, fontWeight: '800', color: '#ffffff' },
-  badge: {
-    minWidth: 34,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-  },
-  badgeText: { fontSize: 13, fontWeight: '800' },
   times: { flex: 1 },
   pinned: { gap: 6, padding: 8, marginHorizontal: -8, borderRadius: 10, backgroundColor: c.surfaceAlt },
   pinnedLabel: { fontSize: 11, fontWeight: '700', color: c.primary, letterSpacing: 0.3 },

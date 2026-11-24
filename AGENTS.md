@@ -94,6 +94,7 @@ the release keystore from repo secrets → GitHub release with `Beacon-<tag>.apk
 | Salles | `(tabs)/salles.tsx` | Room availability grid (rooms × 30-min slots) with a draggable time cursor, search, campus filter, pinned rooms. |
 | Payer | `(tabs)/pay.tsx` | Izly balance, QR payment, history. Tab hidden unless an Izly account is linked. |
 | Carte étudiant | `src/app/card.tsx` | Digital student card with barcode (cached offline). |
+| Trajet | `src/app/trip.tsx` | Full trip opened from a Bus widget summary (`src/lib/tripStore.ts`): every vehicle with its boarding / alighting stops and times, walks, transfers and waits. |
 | Réglages | `src/app/settings.tsx` | Theme, language, bus stops, Izly, logout; "Développement" section in dev builds only. |
 
 First launch shows the onboarding (`src/components/Onboarding.tsx`): university login → optional Izly

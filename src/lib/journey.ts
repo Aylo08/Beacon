@@ -62,6 +62,8 @@ export type RideLeg = {
   to: JourneyStop;
   start: number;
   end: number;
+  /** Stops travelled (the alighting stop included). */
+  stops: number;
   /** Boarding or alighting must be booked by phone (on-demand service). */
   booking: boolean;
 };
@@ -376,6 +378,7 @@ function toJourney(g: Graph, D: Day, s: Scan, to: Point): Journey {
       to: stop(c[r.alight]),
       start: ms(c[r.board + 2] + offset(r)),
       end: ms(c[r.alight + 1] + offset(r)),
+      stops: (r.alight - r.board) / 4,
       booking: !!(c[r.board + 3] & BOOK_PICKUP) || !!(c[r.alight + 3] & BOOK_DROP_OFF),
     });
   });
