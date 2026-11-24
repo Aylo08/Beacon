@@ -57,7 +57,7 @@ export const fr = {
   'widget.restaurants.title': 'Resto U',
   'widget.restaurants.description': 'Affluence en direct des restaurants Agroparc et Sainte-Marthe',
   'widget.bus.title': 'Bus',
-  'widget.bus.description': 'Prochains bus entre St Lazare / Université et Grand Avignon ou Montaigne, en temps réel',
+  'widget.bus.description': 'Prochains bus Orizo et ZOU! depuis votre arrêt, et les trajets vers Sainte-Marthe ou Agroparc',
   'widget.rooms.title': 'Salles favorites',
   'widget.rooms.description': 'Disponibilité de vos salles épinglées, maintenant et dans 1 h 30',
   'today.noClass': 'Pas de cours aujourd’hui',
@@ -332,6 +332,22 @@ export const fr = {
   'settings.privacy': 'Confidentialité',
   'settings.analytics': 'Statistiques anonymes',
   'settings.analyticsHint': 'Une fois par jour, Beacon envoie un identifiant aléatoire, la version de l’app et celle du système, pour compter ses utilisateurs. Rien d’autre : ni compte, ni emploi du temps, ni position. Désactiver efface aussi ces données du serveur.',
+  // Bus widget: trips to campus from any ORIZO / ZOU! stop
+  'bus.destination': 'Destination',
+  'bus.trip.title': 'Prochains trajets vers {campus}',
+  'bus.trip.direct': 'Direct',
+  'bus.trip.walk': 'À pied',
+  'bus.trip.transfers_one': '{count} correspondance',
+  'bus.trip.transfers_other': '{count} correspondances',
+  'bus.trip.transferAt': '{transfers} à {stop}',
+  'bus.trip.a11y': 'Départ {departure}, arrivée {arrival}, {duration}, {lines}, {transfers}',
+  'bus.trip.none': 'Aucun trajet vers {campus} dans les prochaines heures',
+  'bus.trip.loadingZou': 'Téléchargement des horaires ZOU! (environ 15 Mo, une fois par semaine)…',
+  'bus.trip.zouError': 'Horaires ZOU! indisponibles ({error}) : trajets Orizo seulement',
+  'bus.trip.footer': 'Trajets vers la fac : horaires théoriques ZOU! et Orizo',
+  'bus.zouLoading': 'Chargement des arrêts ZOU!…',
+  'err.zouHttp': 'Horaires ZOU! : HTTP {status}',
+  'err.zouNoTrips': 'Aucun trajet ZOU! trouvé autour d’Avignon',
 } as const;
 
 export type TranslationKey = keyof typeof fr;
