@@ -1,5 +1,6 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useAlertsSync } from '../lib/alerts';
 import { useAnalytics } from '../lib/analytics';
 import { useAutoUpdate } from '../lib/appUpdate';
 import { I18nProvider, t } from '../lib/i18n';
@@ -9,6 +10,7 @@ import { AppThemeProvider, useAppTheme } from '../lib/theme';
 export default function RootLayout() {
   useAnalytics();
   useAutoUpdate();
+  useAlertsSync();
   return (
     <I18nProvider>
       <AppThemeProvider>

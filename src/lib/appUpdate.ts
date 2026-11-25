@@ -204,6 +204,14 @@ export async function installUpdate(release: Release) {
   }
 }
 
+/** Pull to refresh (home): checks GitHub now and shows the banner if there is an update. */
+export async function refreshUpdate() {
+  if (!autoCheckPossible) return;
+  await load();
+  if (!store.get().enabled) return;
+  if (await checkForUpdate()) store.set({ banner: true });
+}
+
 /** "Later" on the banner: hidden until the next day's check finds the update again. */
 export const dismissUpdateBanner = () => store.set({ banner: false });
 

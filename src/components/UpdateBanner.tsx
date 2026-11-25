@@ -1,13 +1,13 @@
 // Home screen, above the widgets: "Beacon X is available" with Later / Update, then the download
 // progress, then a retry button if it failed. Shown by the automatic check (`src/lib/appUpdate.ts`);
-// renders nothing otherwise.
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Icon } from './Icon';
+// renders nothing otherwise. Part of the home alert stack (`AlertStack`), in the info colours.
+import { Pressable, Text, View } from 'react-native';
+import { Banner, BannerText } from './Banner';
 import { dismissUpdateBanner, installUpdate, useUpdateBanner } from '../lib/appUpdate';
 import { t } from '../lib/i18n';
 import { makeStyles, useAppTheme } from '../lib/theme';
 
-export function UpdateBanner() {
+export function UpdateBanner({ badge }: { badge?: string }) {
   const styles = useStyles();
   const { colors } = useAppTheme();
   const banner = useUpdateBanner();
@@ -15,21 +15,18 @@ export function UpdateBanner() {
   const { status, release } = banner;
   const downloading = status.kind === 'downloading';
   const percent = downloading ? Math.round(status.progress * 100) : 0;
+  const tint = { bg: colors.infoBg, border: colors.infoBorder, text: colors.infoText };
 
   return (
-    <View style={styles.banner} accessibilityRole="summary">
-      <View style={styles.header}>
-        <Icon name="refresh-line" size={20} color={colors.infoText} />
-        <Text style={styles.title}>{t('update.title')}</Text>
-      </View>
-      <Text style={styles.text}>
+    <Banner colors={tint} icon="refresh-line" title={t('update.title')} badge={badge}>
+      <BannerText color={tint.text}>
         {status.kind === 'error'
           ? t('update.failed')
           : t('update.message', { version: release.version, size: Math.max(1, Math.round(release.size / 1e6)) })}
-      </Text>
+      </BannerText>
       {downloading ? (
         <View style={styles.progressBlock} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: percent }}>
-          <Text style={styles.text}>{t('settings.updateDownloading', { percent })}</Text>
+          <BannerText color={tint.text}>{t('settings.updateDownloading', { percent })}</BannerText>
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${status.progress * 100}%` }]} />
           </View>
@@ -52,22 +49,11 @@ export function UpdateBanner() {
           </Pressable>
         </View>
       )}
-    </View>
+    </Banner>
   );
 }
 
 const useStyles = makeStyles((c) => ({
-  banner: {
-    backgroundColor: c.infoBg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: c.infoBorder,
-    borderRadius: 14,
-    padding: 14,
-    gap: 10,
-  },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { fontSize: 16, fontWeight: '700', color: c.infoText, flexShrink: 1 },
-  text: { fontSize: 14, color: c.infoText, opacity: 0.85 },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
   button: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 999 },
   secondary: { borderWidth: 1, borderColor: c.infoBorder },

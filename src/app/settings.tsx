@@ -12,7 +12,7 @@ import { Icon } from '../components/Icon';
 import { LanguagePicker } from '../components/LanguagePicker';
 import { OptionSheet } from '../components/OptionSheet';
 import { UpdateSettings } from '../components/UpdateSettings';
-import { setDebugPanel, useDebug } from '../lib/debugOverride';
+import { setDebugPanel, setTestAlerts, useDebug } from '../lib/debugOverride';
 import { wipeAllData } from '../debug/wipe';
 import { useSession } from '../lib/sessionContext';
 import { BRAND, makeStyles, useAppTheme } from '../lib/theme';
@@ -27,7 +27,7 @@ export default function SettingsScreen() {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { signOut } = useSession();
-  const { panel } = useDebug();
+  const { panel, testAlerts } = useDebug();
   const forcedLang = useForcedLang();
   const izlyLinked = useIzlyLinked();
   const payLock = usePayLockEnabled();
@@ -129,6 +129,15 @@ export default function SettingsScreen() {
               <Text style={styles.hint}>{t('settings.debugHint')}</Text>
             </View>
             <Switch value={panel} onValueChange={setDebugPanel} />
+          </View>
+          <View style={styles.row}>
+            <Icon name="flask-line" size={18} color={colors.primary} />
+            {/* Debug-only labels, not translated. */}
+            <View style={styles.flex1}>
+              <Text style={styles.label}>Afficher les alertes de test</Text>
+              <Text style={styles.hint}>Alertes du serveur avec le style « test », masquées sinon.</Text>
+            </View>
+            <Switch value={testAlerts} onValueChange={setTestAlerts} />
           </View>
           <Pressable
             onPress={() => setDebugLangOpen(true)}
