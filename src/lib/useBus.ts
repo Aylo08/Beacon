@@ -1,26 +1,40 @@
-// Hooks for the bus timetable (cached on disk, refreshed every few days) and
-// the realtime feed (polled every 30 s while `active`).
+// Hooks for the bus timetables (ORIZO and ZOU!, cached on disk and refreshed
+// every few days) and the ORIZO realtime feed (polled every 30 s while `active`).
 import { useEffect, useState } from 'react';
 import { loadTimetable, type Timetable } from './bus';
 import { fetchRealtime, type RealtimeFeed } from './gtfsRt';
 import { useNow } from './useLive';
+import { loadZouTimetable, type ZouTimetable } from './zou';
 
 const RT_REFRESH_MS = 30_000;
 
-export function useTimetable(active: boolean) {
-  const [timetable, setTimetable] = useState<Timetable | null>(null);
+/** Result of `load()` once `active` (null until then), or its error message. */
+function useLoaded<T>(load: () => Promise<T>, active: boolean) {
+  const [value, setValue] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     if (!active) return;
     let cancelled = false;
-    loadTimetable()
-      .then((tt) => !cancelled && setTimetable(tt))
+    load()
+      .then((v) => !cancelled && setValue(v))
       .catch((e) => !cancelled && setError(e instanceof Error ? e.message : String(e)));
     return () => {
       cancelled = true;
     };
-  }, [active]);
-  return { timetable, error };
+  }, [load, active]);
+  return { value, error };
+}
+
+/** ORIZO timetable. */
+export function useTimetable(active: boolean) {
+  const { value, error } = useLoaded<Timetable>(loadTimetable, active);
+  return { timetable: value, error };
+}
+
+/** ZOU! regional timetable (≈ 15 MB downloaded the first time, then weekly). */
+export function useZouTimetable(active: boolean) {
+  const { value, error } = useLoaded<ZouTimetable>(loadZouTimetable, active);
+  return { timetable: value, error };
 }
 
 /** Latest realtime feed, or null if unavailable (then show the timetable). */
