@@ -93,7 +93,7 @@ the release keystore from repo secrets → GitHub release with `Beacon-<tag>.apk
 
 | Tab / screen | Route | |
 |---|---|---|
-| Accueil | `src/app/(tabs)/index.tsx` | Contextual "now bar" header (class in progress, next class, lunch, bus home…), student card button, editable widgets (Aujourd'hui, Resto U, Bus, Salles favorites). |
+| Accueil | `src/app/(tabs)/index.tsx` | Contextual "now bar" header (class in progress, next class, lunch, bus home…), alerts (server alerts + app update), student card button, editable widgets (Aujourd'hui, Resto U, Bus, Salles favorites). |
 | Mon EDT | `(tabs)/perso.tsx` | Timetable of the selected favourite: one day with swipe on phones, week grid on wide screens. |
 | Salles | `(tabs)/salles.tsx` | Room availability grid (rooms × 30-min slots) with a draggable time cursor, search, campus filter, pinned rooms. |
 | Payer | `(tabs)/pay.tsx` | Izly balance, QR payment, history. Tab hidden unless an Izly account is linked. |
@@ -131,8 +131,13 @@ anonymous statistics and static content. The app finds it through `EXPO_PUBLIC_B
   version/build, platform, OS version); opt-out in Réglages → Confidentialité calls
   `DELETE /v1/analytics/installs/:id`. Changing the payload means changing `onboarding.privacyAnalytics`
   and `settings.analyticsHint` in every language.
-- `src/lib/content.ts`: manifest + file cache (`/v1/content/manifest.json`), **not used yet**: before
-  calling `syncContent()`, update the onboarding privacy text.
+- `src/lib/content.ts`: manifest + file cache (`/v1/content/manifest.json`), synced by `alerts.ts`.
+  The onboarding privacy text says Beacon downloads announcements and sends nothing about the user:
+  keep it true if content ever sends more than the request itself.
+- `src/lib/alerts.ts`: every manifest file named `alert-*.json` is a home-screen alert
+  (`style`: major / blockade / maintenance / normal / test, localized `title` / `content`, optional
+  `startsAt` / `endsAt` / `dismissible` / `unverified` (grey "not from the university" note)), shown by `src/components/AlertStack.tsx` with the Android
+  update banner. `test` alerts only show in dev builds (Réglages → Développement switch).
 - The server's `/v1` API is a contract with released apps: changes there must stay backward compatible.
 
 ## Conventions
