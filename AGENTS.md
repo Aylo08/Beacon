@@ -73,7 +73,8 @@ gitignored `PRIVATE_AGENTS.md` on the maintainer's machine. Don't recreate it or
 ## CI / releases
 
 `.github/workflows/android-release.yml` runs on every push to `main` (and manually): `npm ci` →
-`expo prebuild -p android --clean` → `./gradlew assembleRelease` (arm64-v8a + armeabi-v7a) → signed with
+`expo prebuild -p android --clean` → `./gradlew assembleRelease` (arm64-v8a + armeabi-v7a for phones, x86_64 +
+x86 for PC emulators such as BlueStacks) → signed with
 the release keystore from repo secrets → GitHub release with `Beacon-<tag>.apk`.
 - Tag = `v<expo.version in app.json>` (or `v<version>-build.<run>` if the tag already exists): **bump
   `expo.version` before merging a new version into `main`**.
@@ -184,5 +185,11 @@ anonymous statistics and static content. The app finds it through `EXPO_PUBLIC_B
   generated table). The planner (`src/lib/journey.ts`) and the catalog are pure logic: test them in Node with
   the real feeds (stub `expo/fetch`, `expo-file-system` and `i18n`).
 - Native Android builds need ~5–10 GB of free disk space.
+- Windows: native builds fail with "Filename longer than 260 characters" (CMake object paths repeat the full
+  source path, and the ninja 1.10 of the SDK's CMake 3.22.1 can't use long paths). Keep the project in a short
+  folder (e.g. `C:\dev\Beacon`), enable Windows long paths, install `cmake;3.31.6` with the SDK manager (ninja
+  1.12) and set `cmake.dir` to it in `android/local.properties` (machine-specific, gitignored with `android/`).
+- PC emulators (BlueStacks…) are x86_64: the APK needs that ABI (the default `reactNativeArchitectures` has it).
+  BlueStacks: enable ADB in its settings, then `HD-Adb connect 127.0.0.1:<port>` (the port HD-Player listens on).
 - No test runner: pure logic (`time.ts`, `events.ts`…) can be checked by copying it to a scratch folder and
   running it with `node --experimental-strip-types` (stub Expo imports).
