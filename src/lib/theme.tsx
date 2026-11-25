@@ -42,6 +42,12 @@ const light = {
   /** Home "now bar" background, and text on it. */
   accent: '#2563eb',
   onAccent: '#ffffff',
+  /** Informational banner (app update): tinted surface, its text, and its main button. */
+  infoBg: '#eff6ff',
+  infoBorder: '#bfdbfe',
+  infoText: '#1e3a8a',
+  infoButton: '#2563eb',
+  onInfoButton: '#ffffff',
   events: {
     CM: { bg: '#dbeafe', border: '#3b82f6', text: '#1e3a8a' },
     TD: { bg: '#dcfce7', border: '#22c55e', text: '#14532d' },
@@ -82,6 +88,11 @@ const dark: Palette = {
   backdrop: 'rgba(0, 0, 0, 0.7)',
   accent: '#1d4ed8',
   onAccent: '#ffffff',
+  infoBg: '#0b1626',
+  infoBorder: '#1e3a5f',
+  infoText: '#cfe1f7',
+  infoButton: '#93c5fd',
+  onInfoButton: '#0b1626',
   events: {
     CM: { bg: '#1e3a8a', border: '#60a5fa', text: '#dbeafe' },
     TD: { bg: '#14532d', border: '#4ade80', text: '#dcfce7' },

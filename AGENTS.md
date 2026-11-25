@@ -83,6 +83,11 @@ the release keystore from repo secrets → GitHub release with `Beacon-<tag>.apk
 - Beacon server URL: repo variable `BEACON_API_URL` → `EXPO_PUBLIC_BEACON_API_URL` at bundle time
   (unset → no statistics, and the onboarding says Beacon has no server).
 - Pushes to `dev` don't build anything.
+- **Android auto-update** (`src/lib/appUpdate.ts`): once a day the app reads GitHub's latest release
+  (`api.github.com/repos/GeoffreyGx/Beacon/releases/latest`), compares the `versionCode N` in the notes
+  with its own, downloads the `.apk` asset, checks GitHub's SHA-256 digest and opens the Android installer
+  (`REQUEST_INSTALL_PACKAGES` in `app.json`). Keep that notes line and the APK asset; don't mark
+  releases as prerelease. Off in dev builds; switch + manual check in Réglages → Mises à jour.
 
 ## Features
 
@@ -110,7 +115,7 @@ src/widgets/             home widgets + registry.ts
 src/debug/DebugPanel.tsx dev-only now-bar scenarios (fake clock / events)
 src/lib/                 logic: storage (keychain), store (createStore), prefs, session, edt*, events, time,
                          theme, i18n/, izly/, bus + gtfsRt (buses), crous, studentCard, code128, webview, http,
-                         beaconApi + analytics + content (Beacon server, see below)
+                         beaconApi + analytics + content (Beacon server, see below), appUpdate (Android)
 scripts/gen-icons.py     regenerates src/components/Icon.tsx
 assets/icon-src/         app icon generator (Pillow)
 app.json / app.config.ts config; BEACON_PERSONAL_BUILD=1 → iOS bundle id with `.dev` suffix
