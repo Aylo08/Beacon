@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { loadTimetable, type Timetable } from './bus';
 import { fetchRealtime, type RealtimeFeed } from './gtfsRt';
+import { useOnRefresh } from './refresh';
 import { useNow } from './useLive';
 import { loadZouTimetable, type ZouTimetable } from './zou';
 
@@ -22,6 +23,14 @@ function useLoaded<T>(load: () => Promise<T>, active: boolean) {
       cancelled = true;
     };
   }, [load, active]);
+  // Pull to refresh: only retry when it failed (the timetables are cached and change every few days).
+  useOnRefresh(() => {
+    if (!active || !error) return;
+    return load().then((v) => {
+      setValue(v);
+      setError(null);
+    }, () => {});
+  });
   return { value, error };
 }
 
@@ -56,5 +65,15 @@ export function useRealtime(active: boolean): RealtimeFeed | null {
       cancelled = true;
     };
   }, [active, tick]);
+  useOnRefresh(() => {
+    if (!active) return;
+    return fetchRealtime().then(
+      (feed) => {
+        setRt(feed);
+        setFailed(false);
+      },
+      () => setFailed(true),
+    );
+  });
   return failed ? null : rt;
 }
