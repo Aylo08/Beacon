@@ -231,6 +231,9 @@ export type Departure = {
   limited: boolean;
   /** Where the bus goes ("Porte de l'Oulle"). */
   headsign: string;
+  /** Set for a ZOU! coach or train (lib/zou, scheduled times only), with its line colours. */
+  network?: 'zou';
+  color?: { bg: string; text: string };
 };
 
 /** Stop names served by the kept lines (bus and tram), sorted, with the lines serving each. */
@@ -326,6 +329,32 @@ export function nextDepartures(
       if (i < 0) continue;
       const j = trip.stops.findIndex(([id], k) => k > i && tt.stopNames[id] === toName);
       if (j > 0) out.push({ trip, dep: trip.stops[i], arr: trip.stops[j] });
+    }
+    return out;
+  });
+  return departuresOf(tt, rt, legs, now, count);
+}
+
+/**
+ * Next `count` departures of every line from stop `name`, whatever their destination
+ * (arrival = terminus). Buses ending there aren't departures: a call counts only if
+ * the bus then goes on to another place (so "St Lazare → Université" at the end of a
+ * trip is an arrival, see samePlace).
+ */
+export function stopDepartures(tt: Timetable, rt: RealtimeFeed | null, name: string, now: number, count = 6): Departure[] {
+  const legs = cachedLegs(tt, `stop\n${name}`, () => {
+    const out: Leg[] = [];
+    for (const trip of tt.trips) {
+      const names = trip.stops.map(([id]) => tt.stopNames[id]);
+      // Last call somewhere else: a call at `name` before it is a departure.
+      let lastElsewhere = -1;
+      for (let k = names.length - 1; k >= 0; k--)
+        if (!samePlace(names[k], name)) {
+          lastElsewhere = k;
+          break;
+        }
+      const i = names.findIndex((n, k) => n === name && k < lastElsewhere);
+      if (i >= 0) out.push({ trip, dep: trip.stops[i], arr: trip.stops[trip.stops.length - 1] });
     }
     return out;
   });
