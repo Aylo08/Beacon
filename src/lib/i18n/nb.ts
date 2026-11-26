@@ -91,7 +91,6 @@ export const nb: Record<TranslationKey, string> = {
   'bus.footerLive': 'ORIZO sanntid',
   'bus.footerScheduled': 'Planlagte tider (sanntid utilgjengelig)',
   'bus.none24h': 'Ingen busser de neste 24 t',
-  'bus.pinnedTo': 'Neste mot {stop}',
   'bus.chooseStop': 'Velg en holdeplass',
   'bus.searchStop': 'Søk etter holdeplass…',
   'bus.noStop': 'Fant ingen holdeplass',
@@ -323,6 +322,7 @@ export const nb: Record<TranslationKey, string> = {
   'settings.installUpdate': 'Installer versjon {version}',
   'settings.checkUpdates': 'Se etter oppdateringer',
   // Bus widget: trips to campus from any ORIZO / ZOU! stop
+  'bus.trip.title': 'Neste reiser til {campus}',
   'bus.trip.direct': 'Direkte',
   'bus.trip.walk': 'Til fots',
   'bus.trip.transfers_one': '{count} bytte',

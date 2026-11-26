@@ -91,7 +91,6 @@ export const el: Record<TranslationKey, string> = {
   'bus.footerLive': 'Πραγματικός χρόνος ORIZO',
   'bus.footerScheduled': 'Προγραμματισμένες ώρες (χωρίς πραγματικό χρόνο)',
   'bus.none24h': 'Κανένα λεωφορείο τις επόμενες 24 ώρες',
-  'bus.pinnedTo': 'Επόμενο προς {stop}',
   'bus.chooseStop': 'Επιλογή στάσης',
   'bus.searchStop': 'Αναζήτηση στάσης…',
   'bus.noStop': 'Δεν βρέθηκε στάση',
@@ -323,6 +322,7 @@ export const el: Record<TranslationKey, string> = {
   'settings.installUpdate': 'Εγκατάσταση της έκδοσης {version}',
   'settings.checkUpdates': 'Έλεγχος για ενημερώσεις',
   // Bus widget: trips to campus from any ORIZO / ZOU! stop
+  'bus.trip.title': 'Επόμενες διαδρομές προς {campus}',
   'bus.trip.direct': 'Απευθείας',
   'bus.trip.walk': 'Με τα πόδια',
   'bus.trip.transfers_one': '{count} μετεπιβίβαση',

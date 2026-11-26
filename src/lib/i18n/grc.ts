@@ -92,7 +92,6 @@ export const grc: Record<TranslationKey, string> = {
   'bus.footerLive': 'ORIZO ἐν ἀληθεῖ χρόνῳ',
   'bus.footerScheduled': 'Ὧραι τεταγμέναι (ὁ ἀληθὴς χρόνος οὐ πάρεστιν)',
   'bus.none24h': 'Οὐδὲν λεωφορεῖον ἐν ταῖς ἑπομέναις κδʹ ὥραις',
-  'bus.pinnedTo': 'Τὸ ἑπόμενον πρὸς {stop}',
   'bus.chooseStop': 'Ἑλοῦ σταθμόν',
   'bus.searchStop': 'Ζήτει σταθμόν…',
   'bus.noStop': 'Οὐδεὶς σταθμὸς ηὑρέθη',
@@ -324,6 +323,7 @@ export const grc: Record<TranslationKey, string> = {
   'settings.installUpdate': 'Ἐγκατάστησον τὴν ἔκδοσιν {version}',
   'settings.checkUpdates': 'Ζήτει νέαν ἔκδοσιν',
   // Bus widget: trips to campus from any ORIZO / ZOU! stop
+  'bus.trip.title': 'Αἱ ἑπόμεναι πορεῖαι πρὸς {campus}',
   'bus.trip.direct': 'Εὐθεῖα',
   'bus.trip.walk': 'Πεζῇ',
   'bus.trip.transfers_one': '{count} μετάβασις',

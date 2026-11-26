@@ -90,7 +90,6 @@ export const sv: Record<TranslationKey, string> = {
   'bus.footerLive': 'ORIZO realtid',
   'bus.footerScheduled': 'Planerade tider (realtid ej tillgänglig)',
   'bus.none24h': 'Inga bussar de närmaste 24 h',
-  'bus.pinnedTo': 'Nästa mot {stop}',
   'bus.chooseStop': 'Välj en hållplats',
   'bus.searchStop': 'Sök en hållplats…',
   'bus.noStop': 'Ingen hållplats hittades',
@@ -322,6 +321,7 @@ export const sv: Record<TranslationKey, string> = {
   'settings.installUpdate': 'Installera version {version}',
   'settings.checkUpdates': 'Sök efter uppdateringar',
   // Bus widget: trips to campus from any ORIZO / ZOU! stop
+  'bus.trip.title': 'Nästa resor till {campus}',
   'bus.trip.direct': 'Direkt',
   'bus.trip.walk': 'Till fots',
   'bus.trip.transfers_one': '{count} byte',

@@ -91,7 +91,6 @@ export const zh: Record<TranslationKey, string> = {
   'bus.footerLive': 'ORIZO 实时',
   'bus.footerScheduled': '计划时刻（实时数据不可用）',
   'bus.none24h': '未来 24 小时内没有公交',
-  'bus.pinnedTo': '下一班开往 {stop}',
   'bus.chooseStop': '选择车站',
   'bus.searchStop': '搜索车站…',
   'bus.noStop': '未找到车站',
@@ -322,6 +321,7 @@ export const zh: Record<TranslationKey, string> = {
   'settings.installUpdate': '安装版本 {version}',
   'settings.checkUpdates': '检查更新',
   // Bus widget: trips to campus from any ORIZO / ZOU! stop
+  'bus.trip.title': '前往 {campus} 的下一班行程',
   'bus.trip.direct': '直达',
   'bus.trip.walk': '步行',
   'bus.trip.transfers_one': '换乘 {count} 次',

@@ -90,7 +90,6 @@ export const ko: Record<TranslationKey, string> = {
   'bus.footerLive': 'ORIZO 실시간',
   'bus.footerScheduled': '예정 시각 (실시간 정보 없음)',
   'bus.none24h': '24시간 내 버스 없음',
-  'bus.pinnedTo': '{stop} 방면 다음 버스',
   'bus.chooseStop': '정류장 선택',
   'bus.searchStop': '정류장 검색…',
   'bus.noStop': '정류장을 찾을 수 없음',
@@ -322,6 +321,7 @@ export const ko: Record<TranslationKey, string> = {
   'settings.installUpdate': '버전 {version} 설치',
   'settings.checkUpdates': '업데이트 확인',
   // Bus widget: trips to campus from any ORIZO / ZOU! stop
+  'bus.trip.title': '{campus}까지 다음 경로',
   'bus.trip.direct': '직행',
   'bus.trip.walk': '도보',
   'bus.trip.transfers_one': '환승 {count}회',
