@@ -347,7 +347,6 @@ export const fi: Record<TranslationKey, string> = {
   'trip.stops_other': 'Pysäkit: {count}',
   'trip.transfer': 'Vaihto: {stop}, odotus {duration}',
   'trip.booking': 'Tilauksesta: soita ZOU!:lle ennen matkaa.',
-  'trip.others': 'Muut matkat: {place}',
   'err.zouHttp': 'ZOU!-aikataulut: HTTP {status}',
   'err.zouNoTrips': 'Avignonin ympäristöstä ei löytynyt ZOU!-vuoroja',
 };

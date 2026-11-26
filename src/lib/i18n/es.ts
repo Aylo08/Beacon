@@ -346,7 +346,6 @@ export const es: Record<TranslationKey, string> = {
   'trip.stops_other': '{count} paradas',
   'trip.transfer': 'Transbordo en {stop}: espera de {duration}',
   'trip.booking': 'Bajo reserva: llama a ZOU! antes del trayecto.',
-  'trip.others': 'Otros trayectos a {place}',
   'err.zouHttp': 'Horarios de ZOU!: HTTP {status}',
   'err.zouNoTrips': 'No se ha encontrado ningún trayecto ZOU! cerca de Aviñón',
 };

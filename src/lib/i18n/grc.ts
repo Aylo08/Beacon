@@ -348,7 +348,6 @@ export const grc: Record<TranslationKey, string> = {
   'trip.stops_other': '{count} σταθμοί',
   'trip.transfer': 'Μετάβασις ἐν {stop}· ἀναμονὴ {duration}',
   'trip.booking': 'Κατὰ κράτησιν· κάλεσον τὴν ZOU! πρὸ τῆς πορείας.',
-  'trip.others': 'Ἄλλαι πορεῖαι πρὸς {place}',
   'err.zouHttp': 'Ὡρολόγια ZOU!· HTTP {status}',
   'err.zouNoTrips': 'Οὐδεμία πορεία ZOU! περὶ τὴν Ἀβενιῶνα εὑρέθη',
 };

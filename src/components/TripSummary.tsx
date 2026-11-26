@@ -1,6 +1,5 @@
 // One trip in a line or two: departure → arrival times, duration, wait, the lines
-// (badges) and the changes. Pressable: the Bus widget opens the full trip with it,
-// the trip screen switches to another option.
+// (badges) and the changes. Pressing it opens the full trip (src/app/trip.tsx).
 import { Fragment } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { t, tn } from '../lib/i18n';
@@ -22,10 +21,9 @@ type Props = {
   onPress: () => void;
   /** Spoken hint of the press. */
   hint: string;
-  selected?: boolean;
 };
 
-export function TripSummary({ journey, now, onPress, hint, selected }: Props) {
+export function TripSummary({ journey, now, onPress, hint }: Props) {
   const styles = useStyles();
   const { colors } = useAppTheme();
   // Consecutive rides on the same line (a line split into two trips, e.g. 04 at Montfavet) show as one.
@@ -47,7 +45,6 @@ export function TripSummary({ journey, now, onPress, hint, selected }: Props) {
       onPress={onPress}
       style={({ pressed }) => [styles.trip, pressed && styles.pressed]}
       accessibilityRole="button"
-      accessibilityState={{ selected }}
       accessibilityHint={hint}
       accessibilityLabel={t('bus.trip.a11y', {
         departure: formatTime(journey.departure),
@@ -58,7 +55,7 @@ export function TripSummary({ journey, now, onPress, hint, selected }: Props) {
       })}
     >
       <View style={styles.top}>
-        <Text style={[styles.times, selected && styles.selected]}>
+        <Text style={styles.times}>
           {formatTime(journey.departure)} → {formatTime(journey.arrival)}
           <Text style={styles.duration}> · {duration}</Text>
         </Text>
@@ -78,11 +75,7 @@ export function TripSummary({ journey, now, onPress, hint, selected }: Props) {
         <Text style={styles.changes} numberOfLines={1}>
           {changes}
         </Text>
-        {selected ? (
-          <Icon name="check-line" size={18} color={colors.primary} />
-        ) : (
-          <Icon name="arrow-right-s-line" size={18} color={colors.textMuted} />
-        )}
+        <Icon name="arrow-right-s-line" size={18} color={colors.textMuted} />
       </View>
     </Pressable>
   );
@@ -93,7 +86,6 @@ const useStyles = makeStyles((c) => ({
   pressed: { opacity: 0.6 },
   top: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   times: { flex: 1, fontSize: 15, fontWeight: '700', color: c.text, fontVariant: ['tabular-nums'] },
-  selected: { color: c.primary },
   duration: { fontSize: 13, fontWeight: '400', color: c.textMuted },
   wait: { fontSize: 15, fontWeight: '700', color: c.text, fontVariant: ['tabular-nums'] },
   lines: { flexDirection: 'row', alignItems: 'center', gap: 4 },

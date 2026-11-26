@@ -347,7 +347,6 @@ export const ar: Record<TranslationKey, string> = {
   'trip.stops_other': 'المحطات: {count}',
   'trip.transfer': 'تبديل في {stop}: انتظار {duration}',
   'trip.booking': 'بالحجز المسبق: اتصل بـ ZOU! قبل الرحلة.',
-  'trip.others': 'رحلات أخرى إلى {place}',
   'err.zouHttp': 'مواعيد ZOU!: HTTP {status}',
   'err.zouNoTrips': 'لم يُعثر على أي رحلة ZOU! حول أفينيون',
 };

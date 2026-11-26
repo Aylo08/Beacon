@@ -14,10 +14,7 @@
 // is run again from just after each trip's departure to find the next options.
 // An option that leaves earlier without arriving earlier is dropped (the result
 // is the departure / arrival Pareto front), and so is one that only leaves a few
-// minutes later at the cost of an extra vehicle. The first options with a change
-// also get a variant changing elsewhere (the search run again from the same time,
-// avoiding their change stops): ZOU! 707 to Duffaut then C2, or to the Gare
-// Routière then the 04.
+// minutes later at the cost of an extra vehicle.
 import type { Timetable } from './bus';
 import { distanceM, PointGrid, serviceDayStart, serviceRuns, type ServiceCalendar } from './gtfs';
 import { addDays, parisParts } from './time';
@@ -45,11 +42,6 @@ const HORIZON_S = 12 * 3600;
 const TOMORROW_UNTIL_S = 86_400 + 14 * 3600;
 /** Walking all the way to the campus is offered up to this long. */
 const WALK_ONLY_MAX_S = 20 * 60;
-/** Variants (other lines after the first vehicle) are looked for on the first VARIANT_OF options. */
-const VARIANT_OF = 2;
-/** A variant is listed if it leaves at most VARIANT_MAX_LATER_MS after the option and arrives at most VARIANT_MAX_DELAY_MS after it. */
-const VARIANT_MAX_LATER_MS = 10 * 60_000;
-const VARIANT_MAX_DELAY_MS = 30 * 60_000;
 
 export type Network = 'orizo' | 'zou';
 export type Mode = 'bus' | 'tram' | 'train';
@@ -286,11 +278,8 @@ function lowerBound(values: Int32Array, count: number, x: number) {
 type Ride = { run: number; board: number; alight: number };
 type Scan = { rides: Ride[]; egressNode: number };
 
-/**
- * Best trip (arrival + RIDE_PENALTY_S per vehicle) leaving the `origin` platforms at `t` (s since the day's base) or later,
- * never boarding the `avoid` routes.
- */
-function scan(g: Graph, D: Day, origin: Set<number>, egress: Map<number, number>, t: number, avoid?: Set<number>): Scan | null {
+/** Best trip (arrival + RIDE_PENALTY_S per vehicle) leaving the `origin` platforms at `t` (s since the day's base) or later. */
+function scan(g: Graph, D: Day, origin: Set<number>, egress: Map<number, number>, t: number): Scan | null {
   const n = g.names.length;
   const ready = new Float64Array(n).fill(Infinity);
   const rides = new Uint8Array(n);
@@ -319,12 +308,11 @@ function scan(g: Graph, D: Day, origin: Set<number>, egress: Map<number, number>
     // Any trip using a later connection costs at least its departure plus one vehicle.
     if (dep + RIDE_PENALTY_S > bestCost || dep > end) break;
     const r = D.run[i];
-    const trip = g.trips[D.runTrip[r]];
-    const calls = trip.calls;
+    const calls = g.trips[D.runTrip[r]].calls;
     const k = D.call[i];
     if (boarded[r] < 0) {
       const from = D.from[i];
-      if (ready[from] > dep || calls[k + 3] & NO_PICKUP || avoid?.has(trip.route)) continue;
+      if (ready[from] > dep || calls[k + 3] & NO_PICKUP) continue;
       boarded[r] = i;
       boardRides[r] = rides[from] + 1;
     }
@@ -398,7 +386,9 @@ function toJourney(g: Graph, D: Day, s: Scan, to: Point): Journey {
   const last = s.rides[s.rides.length - 1];
   const lastArr = callsOf(last)[last.alight + 1] + offset(last);
   const egressD = distanceM(ll(stop(s.egressNode)), ll(to));
-  legs.push({ kind: 'walk', from: stop(s.egressNode), to: null, start: ms(lastArr), end: ms(lastArr + walkSeconds(egressD)), distance: walkMetres(egressD) });
+  // Alighting at the destination itself (its platforms are around the stop's centre): no last walk.
+  if (egressD >= SAME_PLACE_M)
+    legs.push({ kind: 'walk', from: stop(s.egressNode), to: null, start: ms(lastArr), end: ms(lastArr + walkSeconds(egressD)), distance: walkMetres(egressD) });
   return { departure: legs[0].start, arrival: legs[legs.length - 1].end, legs, rides: s.rides.length };
 }
 
@@ -430,47 +420,24 @@ export function planFromStop(orizo: Timetable | null, zou: ZouTimetable | null, 
 
   const D = dayConnections(g, parisParts(new Date(departAt)).day);
   const want = max - journeys.length;
-  const options: { journey: Journey; scan: Scan }[] = [];
+  const transit: Journey[] = [];
   let t = Math.floor((departAt - D.base) / 1000);
   for (let iter = 0; iter < 16 && want > 0; iter++) {
     const s = scan(g, D, start, egress, t);
     if (!s) break;
     const journey = toJourney(g, D, s, to);
     t = Math.max(t, Math.floor((journey.departure - D.base) / 1000)) + 60;
-    const last = options[options.length - 1]?.journey;
+    const last = transit[transit.length - 1];
     // Full, and this one arrives later: a genuinely later option, not needed.
-    if (options.length >= want && journey.arrival > last.arrival) break;
+    if (transit.length >= want && journey.arrival > last.arrival) break;
     // Leaving a few minutes later at the cost of one more vehicle: not worth listing.
     if (last && journey.rides > last.rides && journey.arrival >= last.arrival - 60_000 && journey.departure - last.departure < EXTRA_RIDE_MIN_GAIN_MS)
       continue;
     // Options leaving earlier without arriving earlier (and with no fewer vehicles) are dominated.
-    while (options.length && options[options.length - 1].journey.arrival >= journey.arrival && options[options.length - 1].journey.rides >= journey.rides)
-      options.pop();
-    options.push({ journey, scan: s });
+    while (transit.length && transit[transit.length - 1].arrival >= journey.arrival && transit[transit.length - 1].rides >= journey.rides)
+      transit.pop();
+    transit.push(journey);
   }
-
-  // The first options with a change: the same search from the same time without the lines taken after the first vehicle.
-  const variants: Journey[] = [];
-  for (const { journey, scan: s } of options.slice(0, VARIANT_OF)) {
-    if (s.rides.length < 2) continue;
-    const first = g.trips[D.runTrip[s.rides[0].run]].route;
-    const avoid = new Set(s.rides.slice(1).map((r) => g.trips[D.runTrip[r.run]].route).filter((route) => route !== first));
-    if (!avoid.size) continue;
-    const v = scan(g, D, start, egress, Math.floor((journey.departure - D.base) / 1000), avoid);
-    const variant = v && toJourney(g, D, v, to);
-    if (variant && variant.departure - journey.departure <= VARIANT_MAX_LATER_MS && variant.arrival - journey.arrival <= VARIANT_MAX_DELAY_MS)
-      variants.push(variant);
-  }
-
-  // Soonest first, each sequence of vehicles once.
-  const vehicles = (j: Journey) => j.legs.map((l) => (l.kind === 'ride' ? `${l.network} ${l.line} ${l.start} ${l.to.name}` : '')).join('|');
-  const seen = new Set<string>();
-  const transit = [...options.map((o) => o.journey), ...variants]
-    .sort((a, b) => a.departure - b.departure || a.arrival - b.arrival)
-    .filter((j) => {
-      const k = vehicles(j);
-      return !seen.has(k) && !!seen.add(k);
-    });
   // Never offer a ride that takes longer than walking all the way.
   const walkOnly = journeys[0];
   const useful = walkOnly ? transit.filter((j) => j.arrival - j.departure < walkOnly.arrival - walkOnly.departure) : transit;

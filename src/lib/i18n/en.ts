@@ -374,7 +374,6 @@ export const en: Record<TranslationKey, string> = {
   'trip.stops_other': '{count} stops',
   'trip.transfer': 'Change at {stop}: {duration} wait',
   'trip.booking': 'On request: call ZOU! before the trip.',
-  'trip.others': 'Other trips to {place}',
   'err.zouHttp': 'ZOU! timetables: HTTP {status}',
   'err.zouNoTrips': 'No ZOU! trip found around Avignon',
 };

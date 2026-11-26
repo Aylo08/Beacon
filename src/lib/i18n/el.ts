@@ -347,7 +347,6 @@ export const el: Record<TranslationKey, string> = {
   'trip.stops_other': '{count} στάσεις',
   'trip.transfer': 'Μετεπιβίβαση στη στάση {stop}: αναμονή {duration}',
   'trip.booking': 'Κατόπιν κράτησης: τηλεφωνήστε στη ZOU! πριν από τη διαδρομή.',
-  'trip.others': 'Άλλες διαδρομές προς {place}',
   'err.zouHttp': 'Δρομολόγια ZOU!: HTTP {status}',
   'err.zouNoTrips': 'Δεν βρέθηκε δρομολόγιο ZOU! γύρω από την Αβινιόν',
 };

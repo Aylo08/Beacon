@@ -346,7 +346,6 @@ export const pt: Record<TranslationKey, string> = {
   'trip.stops_other': '{count} paragens',
   'trip.transfer': 'Transbordo em {stop}: espera de {duration}',
   'trip.booking': 'Mediante reserva: liga para a ZOU! antes da viagem.',
-  'trip.others': 'Outros trajetos para {place}',
   'err.zouHttp': 'Horários ZOU!: HTTP {status}',
   'err.zouNoTrips': 'Nenhuma viagem ZOU! encontrada perto de Avinhão',
 };

@@ -346,7 +346,6 @@ export const zh: Record<TranslationKey, string> = {
   'trip.stops_other': '{count} 站',
   'trip.transfer': '在 {stop} 换乘：等候 {duration}',
   'trip.booking': '需预约：出行前请致电 ZOU!。',
-  'trip.others': '前往 {place} 的其他行程',
   'err.zouHttp': 'ZOU! 时刻表：HTTP {status}',
   'err.zouNoTrips': '阿维尼翁周边未找到 ZOU! 班次',
 };

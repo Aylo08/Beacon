@@ -348,7 +348,6 @@ export const la: Record<TranslationKey, string> = {
   'trip.stops_other': '{count} stationes',
   'trip.transfer': 'Mutatio ad {stop}: exspectatio {duration}',
   'trip.booking': 'Ex postulatione: ZOU! ante iter voca.',
-  'trip.others': 'Alia itinera ad {place}',
   'err.zouHttp': 'Horaria ZOU!: HTTP {status}',
   'err.zouNoTrips': 'Nullum iter ZOU! circa Avenionem inventum',
 };
