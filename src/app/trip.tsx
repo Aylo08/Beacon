@@ -1,16 +1,20 @@
 // "Trajet": the full trip opened from a summary of the Bus widget: departure and
 // arrival, then every step — the vehicles (line, direction, boarding and alighting
 // stops and times, number of stops), the walks and the transfers with their wait.
-import { Fragment, type ReactNode } from 'react';
+// Below, the other trips to the same place (later ones, or changing elsewhere):
+// pressing one shows it instead.
+import { Fragment, useRef, type ComponentRef, type ReactNode } from 'react';
 import { Platform, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon, type IconName } from '../components/Icon';
 import { LineBadge } from '../components/LineBadge';
+import { TripSummary } from '../components/TripSummary';
 import { intlLocale, t, tn } from '../lib/i18n';
 import type { RideLeg } from '../lib/journey';
 import { BRAND, makeStyles, useAppTheme } from '../lib/theme';
 import { formatDuration, formatTime } from '../lib/time';
-import { useOpenedTrip } from '../lib/tripStore';
+import { showOption, useOpenedTrip } from '../lib/tripStore';
+import { useNow } from '../lib/useLive';
 
 /** "450 m" / "1,2 km". */
 const formatDistance = (m: number) =>
@@ -20,19 +24,23 @@ export default function TripScreen() {
   const styles = useStyles();
   const insets = useSafeAreaInsets();
   const trip = useOpenedTrip();
+  const now = useNow(15_000, true);
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
 
-  if (!trip) {
+  const journey = trip?.options[trip.index];
+  if (!trip || !journey) {
     return (
       <View style={styles.center}>
         <Text style={styles.muted}>{t('trip.missing')}</Text>
       </View>
     );
   }
-  const { journey, from, to } = trip;
+  const { options, index, from, to, home } = trip;
   const rides = journey.legs.filter((l): l is RideLeg => l.kind === 'ride');
 
   return (
     <ScrollView
+      ref={scroll}
       style={styles.flex}
       // The native header is translucent on iOS: inset the content below it.
       contentInsetAdjustmentBehavior="automatic"
@@ -77,10 +85,29 @@ export default function TripScreen() {
             </Fragment>
           );
         })}
-        <Step time={formatTime(journey.arrival)} icon="graduation-cap-line" strong>
+        <Step time={formatTime(journey.arrival)} icon={home ? 'home-5-line' : 'graduation-cap-line'} strong>
           {t('trip.arrive', { place: to })}
         </Step>
       </View>
+
+      {options.length > 1 && (
+        <View style={styles.others}>
+          <Text style={styles.othersTitle}>{t('trip.others', { place: to })}</Text>
+          {options.map((option, i) => (
+            <TripSummary
+              key={i}
+              journey={option}
+              now={now}
+              selected={i === index}
+              hint={t('bus.trip.open')}
+              onPress={() => {
+                showOption(i);
+                scroll.current?.scrollTo({ y: 0, animated: true });
+              }}
+            />
+          ))}
+        </View>
+      )}
 
       <Text style={styles.note}>{t('bus.trip.footer')}</Text>
     </ScrollView>
@@ -146,5 +173,7 @@ const useStyles = makeStyles((c) => ({
   callText: { flex: 1, fontSize: 15, color: c.text },
   small: { fontSize: 13, color: c.textMuted },
   booking: { fontSize: 13, fontWeight: '600', color: c.danger },
+  others: { gap: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border },
+  othersTitle: { fontSize: 11, fontWeight: '700', color: c.primary, letterSpacing: 0.3 },
   note: { fontSize: 12, color: c.textMuted },
 }));
