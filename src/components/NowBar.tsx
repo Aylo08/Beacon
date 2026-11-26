@@ -14,13 +14,14 @@
 // When a bus is shown while the restaurants are open, both restaurants'
 // attendance is shown under it as chips. A strip of today's classes closes the
 // bar, except when a bus or the restaurant fills it. A debug override (dev builds) can fake it all.
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { EdgeInsets } from 'react-native-safe-area-context';
 import { ActivityIndicator, Text, View } from 'react-native';
-import { nextDepartures, samePlace, type Departure, type Timetable } from '../lib/bus';
+import { campusChangeStop, nextDepartures, samePlace, type CampusStop, type Departure, type Timetable } from '../lib/bus';
 import { useBusPrefs } from '../lib/busPrefs';
-import { attendancePercent, isRestoOpen, RESTOS, restoForCampus, spansLunch, type Attendance } from '../lib/crous';
-import { stopForCampus, toItems, useRoomCampuses, type Item } from '../lib/classPlaces';
+import { attendancePercent, campusOfRoom, isRestoOpen, RESTOS, restoForCampus, spansLunch, type Attendance } from '../lib/crous';
+import type { RoomEvent } from '../lib/edt';
+import { normalizeSearch, titleField } from '../lib/events';
 import { usePersonalData } from '../lib/personalData';
 import { useSession } from '../lib/sessionContext';
 import { makeStyles, useAppTheme } from '../lib/theme';
@@ -39,6 +40,40 @@ const SOON_MS = 15 * 60_000;
 /** …and when simply waiting between classes. */
 const SOON_WAITING_MS = 10 * 60_000;
 
+type Item = {
+  start: number;
+  end: number;
+  day: string;
+  startMin: number;
+  endMin: number;
+  subject: string;
+  room?: string;
+  type: string;
+};
+
+const toItem = (e: RoomEvent): Item => {
+  const s = new Date(e.start);
+  const end = new Date(e.end);
+  const sp = parisParts(s);
+  return {
+    start: s.getTime(),
+    end: end.getTime(),
+    day: sp.day,
+    startMin: sp.minutes,
+    endMin: parisParts(end).minutes,
+    subject: titleField(e.title, 'Matière') ?? e.title.split('\n')[0] ?? e.type,
+    room: titleField(e.title, 'Salle', 'Salles'),
+    type: e.type,
+  };
+};
+
+const toItems = (events: RoomEvent[] | null) =>
+  (events ?? [])
+    .filter((e) => e.type !== 'Annulation')
+    .map(toItem)
+    .filter((i) => i.end - i.start < 12 * 3600_000) // skip all-day markers (holidays)
+    .sort((a, b) => a.start - b.start);
+
 /** 35 → "35 min", 95 → "1 h 35", 1600 → "1 j 2 h" */
 export function formatDuration(totalMin: number) {
   const m = Math.max(0, Math.ceil(totalMin));
@@ -50,6 +85,42 @@ export function formatDuration(totalMin: number) {
 }
 
 const hhmm = (ms: number) => formatMinutes(parisParts(new Date(ms)).minutes);
+
+/** Campus name of each room (via the room list), resolved lazily. undefined = still loading. */
+function useRoomCampuses(token: string | null | undefined, rooms: (string | undefined)[], overrides?: Record<string, string>) {
+  const [known, setKnown] = useState<Record<string, string | null>>({});
+  const missing = [...new Set(rooms.filter((r): r is string => !!r && !(r in known) && !overrides?.[r]))];
+  const key = missing.join('\n');
+  useEffect(() => {
+    if (!token || !key) return;
+    let cancelled = false;
+    for (const room of key.split('\n')) {
+      campusOfRoom(token, room)
+        .catch(() => null)
+        .then((c) => !cancelled && setKnown((k) => ({ ...k, [room]: c })));
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [token, key]);
+  return (room: string | undefined): string | null | undefined => (room ? (overrides?.[room] ?? known[room]) : null);
+}
+
+/**
+ * Bus stop serving a campus: the chosen Centre-ville stop for Centre-ville, the chosen Agroparc stop
+ * otherwise (`campusChange`: the Agroparc stop with a bus to Centre-ville, see campusChangeStop).
+ */
+function stopForCampus(
+  campus: string | null | undefined,
+  stops: { centreStop: string; campusStop: CampusStop },
+  campusChange = false,
+): string | null {
+  if (!campus) return null;
+  const c = normalizeSearch(campus);
+  if (c.includes('nondefini')) return null;
+  if (c.includes('centre')) return stops.centreStop;
+  return campusChange ? campusChangeStop(stops.campusStop) : stops.campusStop;
+}
 
 type BusPlan = { kind: 'travel' | 'toCampus' | 'home'; from: string; to: string; context?: string; arriveBy?: number };
 

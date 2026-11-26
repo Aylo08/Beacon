@@ -1,5 +1,5 @@
 // ZOU! regional timetable (Région Sud): the coaches and trains serving the
-// Avignon area, for the journey planner (lib/journey) and the Bus widget's departures. Open data published by
+// Avignon area, for the journey planner (lib/journey). Open data published by
 // the Région on transport.data.gouv.fr:
 //  - "Proximité": coach lines numbered 100–9999 (902 Orange, 905 Carpentras,
 //    906 L'Isle-sur-la-Sorgue, 907 Cavaillon, 920 Carpentras – Agroparc…);
@@ -15,10 +15,8 @@
 import { fetch } from 'expo/fetch';
 import { File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
-import type { Departure } from './bus';
-import { distanceM, eachRow, gtfsTime, parseCalendar, PointGrid, serviceDayStart, serviceRuns, type ServiceCalendar } from './gtfs';
+import { distanceM, eachRow, gtfsTime, parseCalendar, PointGrid, type ServiceCalendar } from './gtfs';
 import { t } from './i18n';
-import { addDays, parisParts } from './time';
 
 /** Stable links to the feeds' GTFS resources (transport.data.gouv.fr redirects to the current file). */
 const FEEDS = [
@@ -268,67 +266,4 @@ export function loadZouTimetable(): Promise<ZouTimetable> {
     loading = null;
   });
   return loading;
-}
-
-// ---------- departures ----------
-
-/** A trip leaving one of the platforms: its call there and its last call (indexes in `calls`). */
-type Leg = { trip: number; dep: number; arr: number };
-const legsCache = new WeakMap<ZouTimetable, Map<string, Leg[]>>();
-
-function legsFrom(tt: ZouTimetable, platforms: number[]): Leg[] {
-  const key = platforms.join(',');
-  let byKey = legsCache.get(tt);
-  if (!byKey) legsCache.set(tt, (byKey = new Map()));
-  let legs = byKey.get(key);
-  if (!legs) {
-    const set = new Set(platforms);
-    legs = [];
-    tt.trips.forEach((trip, i) => {
-      const c = trip.calls;
-      // Boarding allowed there, and not the terminus (a bus ending there isn't a departure).
-      for (let k = 0; k + 4 < c.length; k += 4)
-        if (set.has(c[k]) && !(c[k + 3] & NO_PICKUP)) {
-          legs!.push({ trip: i, dep: k, arr: c.length - 4 });
-          break;
-        }
-    });
-    byKey.set(key, legs);
-  }
-  return legs;
-}
-
-/**
- * Next `count` departures of every ZOU! line from the platforms `platforms` (indexes in `tt.stops`),
- * whatever their destination (arrival = terminus), scheduled times only, soonest first.
- */
-export function zouDepartures(tt: ZouTimetable, platforms: number[], now: number, count: number): Departure[] {
-  if (!platforms.length) return [];
-  const legs = legsFrom(tt, platforms);
-  const today = parisParts(new Date(now)).day;
-  const out: Departure[] = [];
-  for (const day of [addDays(today, -1), today, addDays(today, 1)]) {
-    const base = serviceDayStart(day);
-    for (const { trip: i, dep, arr } of legs) {
-      const trip = tt.trips[i];
-      const scheduled = base + trip.calls[dep + 2] * 1000;
-      if (scheduled < now - 30_000 || scheduled > now + 24 * 3600_000) continue;
-      if (!serviceRuns(tt, trip.service, day)) continue;
-      const route = tt.routes[trip.route];
-      out.push({
-        tripId: `zou:${i}`,
-        line: route.short,
-        scheduled,
-        expected: scheduled,
-        arrival: base + trip.calls[arr + 1] * 1000,
-        realtime: false,
-        canceled: false,
-        limited: false,
-        headsign: trip.headsign,
-        network: 'zou',
-        color: { bg: route.bg, text: route.text },
-      });
-    }
-  }
-  return out.sort((a, b) => a.expected - b.expected).slice(0, count);
 }

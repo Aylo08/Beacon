@@ -28,7 +28,7 @@ export default function TripScreen() {
       </View>
     );
   }
-  const { journey, from, to, home } = trip;
+  const { journey, from, to } = trip;
   const rides = journey.legs.filter((l): l is RideLeg => l.kind === 'ride');
 
   return (
@@ -77,7 +77,7 @@ export default function TripScreen() {
             </Fragment>
           );
         })}
-        <Step time={formatTime(journey.arrival)} icon={home ? 'home-5-line' : 'graduation-cap-line'} strong>
+        <Step time={formatTime(journey.arrival)} icon="graduation-cap-line" strong>
           {t('trip.arrive', { place: to })}
         </Step>
       </View>

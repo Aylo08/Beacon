@@ -94,7 +94,7 @@ the release keystore from repo secrets → GitHub release with `Beacon-<tag>.apk
 
 | Tab / screen | Route | |
 |---|---|---|
-| Accueil | `src/app/(tabs)/index.tsx` | Contextual "now bar" header (class in progress, next class, lunch, bus home…), alerts (server alerts + app update), student card button, editable widgets (Aujourd'hui, Resto U, Bus, Salles favorites). The Bus widget: from any ORIZO or ZOU! stop around Avignon (Châteaurenard, Saint-Rémy…), the next 4 trips to where you're going (the campus of today's next class, else home, as the now bar; ZOU! + ORIZO with transfers and walks, computed on the device; pressing one opens the full trip), then the next departures of every line there (ZOU! included). Next-class helpers shared with the now bar: `src/lib/classPlaces.ts`. |
+| Accueil | `src/app/(tabs)/index.tsx` | Contextual "now bar" header (class in progress, next class, lunch, bus home…), alerts (server alerts + app update), student card button, editable widgets (Aujourd'hui, Resto U, Bus, Salles favorites). The Bus widget: from any ORIZO or ZOU! stop around Avignon (Châteaurenard, Saint-Rémy…), the next trips to Sainte-Marthe or Agroparc (ZOU! + ORIZO, with transfers, computed on the device), each opening the full trip. |
 | Mon EDT | `(tabs)/perso.tsx` | Timetable of the selected favourite: one day with swipe on phones, week grid on wide screens. |
 | Salles | `(tabs)/salles.tsx` | Room availability grid (rooms × 30-min slots) with a draggable time cursor, search, campus filter, pinned rooms. |
 | Payer | `(tabs)/pay.tsx` | Izly balance, QR payment, history. Tab hidden unless an Izly account is linked. |
@@ -119,7 +119,7 @@ src/lib/                 logic: storage (keychain), store (createStore), prefs, 
                          theme, i18n/, izly/, bus + gtfsRt (buses), crous, studentCard, code128, webview, http,
                          beaconApi + analytics + content (Beacon server, see below), appUpdate (Android),
                          Bus widget trips: gtfs (shared GTFS helpers), zou (ZOU! timetable), stopCatalog +
-                         communes (ORIZO + ZOU! stops), journey (trip planner)
+                         communes (ORIZO + ZOU! stops), journey (trip planner), campuses
 scripts/gen-icons.py     regenerates src/components/Icon.tsx
 assets/icon-src/         app icon generator (Pillow)
 app.json / app.config.ts config; BEACON_PERSONAL_BUILD=1 → iOS bundle id with `.dev` suffix

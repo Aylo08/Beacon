@@ -3,14 +3,7 @@
 import type { Journey } from './journey';
 import { createStore } from './store';
 
-export type OpenedTrip = {
-  journey: Journey;
-  /** Starting stop, as shown in the widget. */
-  from: string;
-  /** Destination stop, and whether it's the home stop (else a campus). */
-  to: string;
-  home: boolean;
-};
+export type OpenedTrip = { journey: Journey; /** Starting stop, as shown in the widget. */ from: string; /** Campus name. */ to: string };
 
 const store = createStore<{ trip: OpenedTrip | null }>({ trip: null });
 

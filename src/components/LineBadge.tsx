@@ -1,12 +1,12 @@
 // Line badge in the line's colours ("C3", "707"); ZOU! lines get the network's
-// tag in front, trains a train icon, limited-stop trips ("DIRECT") a bolt.
+// tag in front, trains a train icon.
 import { Text, View } from 'react-native';
 import { BRAND, makeStyles } from '../lib/theme';
 import { Icon } from './Icon';
 
-type Props = { line: string; color: { bg: string; text: string }; zou?: boolean; train?: boolean; limited?: boolean };
+type Props = { line: string; color: { bg: string; text: string }; zou?: boolean; train?: boolean };
 
-export function LineBadge({ line, color, zou, train, limited }: Props) {
+export function LineBadge({ line, color, zou, train }: Props) {
   const styles = useStyles();
   return (
     <View style={styles.group}>
@@ -18,7 +18,6 @@ export function LineBadge({ line, color, zou, train, limited }: Props) {
       <View style={[styles.badge, { backgroundColor: color.bg }]}>
         {train && <Icon name="train-line" size={12} color={color.text} />}
         <Text style={[styles.badgeText, { color: color.text }]}>{line}</Text>
-        {limited && <Icon name="flashlight-fill" size={12} color={color.text} />}
       </View>
     </View>
   );
