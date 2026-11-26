@@ -346,7 +346,6 @@ export const de: Record<TranslationKey, string> = {
   'trip.stops_other': '{count} Haltestellen',
   'trip.transfer': 'Umstieg in {stop}: {duration} Wartezeit',
   'trip.booking': 'Auf Anfrage: ZOU! vor der Fahrt anrufen.',
-  'trip.others': 'Weitere Verbindungen nach {place}',
   'err.zouHttp': 'ZOU!-Fahrpläne: HTTP {status}',
   'err.zouNoTrips': 'Keine ZOU!-Fahrt rund um Avignon gefunden',
 };

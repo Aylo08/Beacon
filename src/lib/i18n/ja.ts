@@ -346,7 +346,6 @@ export const ja: Record<TranslationKey, string> = {
   'trip.stops_other': '{count} 停留所',
   'trip.transfer': '{stop} で乗り換え：待ち時間 {duration}',
   'trip.booking': '予約制：乗車前に ZOU! に電話してください。',
-  'trip.others': '{place} へのほかのルート',
   'err.zouHttp': 'ZOU! 時刻表：HTTP {status}',
   'err.zouNoTrips': 'アヴィニョン周辺で ZOU! の便が見つかりません',
 };

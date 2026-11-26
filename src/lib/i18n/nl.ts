@@ -346,7 +346,6 @@ export const nl: Record<TranslationKey, string> = {
   'trip.stops_other': '{count} haltes',
   'trip.transfer': 'Overstap bij {stop}: {duration} wachten',
   'trip.booking': 'Op afroep: bel ZOU! vóór de rit.',
-  'trip.others': 'Andere ritten naar {place}',
   'err.zouHttp': 'ZOU!-dienstregeling: HTTP {status}',
   'err.zouNoTrips': 'Geen ZOU!-rit gevonden rond Avignon',
 };

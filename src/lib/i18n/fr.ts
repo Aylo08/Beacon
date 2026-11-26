@@ -376,7 +376,6 @@ export const fr = {
   'trip.stops_other': '{count} arrêts',
   'trip.transfer': 'Correspondance à {stop} : attente {duration}',
   'trip.booking': 'Sur réservation : appelez ZOU! avant le trajet.',
-  'trip.others': 'Autres trajets vers {place}',
   'err.zouHttp': 'Horaires ZOU! : HTTP {status}',
   'err.zouNoTrips': 'Aucun trajet ZOU! trouvé autour d’Avignon',
 } as const;

@@ -346,7 +346,6 @@ export const sv: Record<TranslationKey, string> = {
   'trip.stops_other': '{count} hållplatser',
   'trip.transfer': 'Byte vid {stop}: väntetid {duration}',
   'trip.booking': 'Beställningstrafik: ring ZOU! före resan.',
-  'trip.others': 'Andra resor till {place}',
   'err.zouHttp': 'ZOU!-tidtabeller: HTTP {status}',
   'err.zouNoTrips': 'Ingen ZOU!-resa hittades runt Avignon',
 };

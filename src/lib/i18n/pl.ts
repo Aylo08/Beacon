@@ -347,7 +347,6 @@ export const pl: Record<TranslationKey, string> = {
   'trip.stops_other': 'Przystanki: {count}',
   'trip.transfer': 'Przesiadka: {stop}, czekanie {duration}',
   'trip.booking': 'Na zamówienie: zadzwoń do ZOU! przed przejazdem.',
-  'trip.others': 'Inne przejazdy do {place}',
   'err.zouHttp': 'Rozkłady ZOU!: HTTP {status}',
   'err.zouNoTrips': 'Nie znaleziono przejazdów ZOU! w okolicy Awinionu',
 };

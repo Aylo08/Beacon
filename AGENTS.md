@@ -93,12 +93,12 @@ the release keystore from repo secrets → GitHub release with `Beacon-<tag>.apk
 
 | Tab / screen | Route | |
 |---|---|---|
-| Accueil | `src/app/(tabs)/index.tsx` | Contextual "now bar" header (class in progress, next class, lunch, bus home…), alerts (server alerts + app update), student card button, editable widgets (Aujourd'hui, Resto U, Bus, Salles favorites). The Bus widget: from any ORIZO or ZOU! stop around Avignon (Châteaurenard, Saint-Rémy…), the next trip to each useful place (from a campus stop: home and the other campus; elsewhere: both campuses; ZOU! + ORIZO with transfers, computed on the device), opening the full trip and the other options, then the next departures of every line there. |
+| Accueil | `src/app/(tabs)/index.tsx` | Contextual "now bar" header (class in progress, next class, lunch, bus home…), alerts (server alerts + app update), student card button, editable widgets (Aujourd'hui, Resto U, Bus, Salles favorites). The Bus widget: from any ORIZO or ZOU! stop around Avignon (Châteaurenard, Saint-Rémy…), the next trip to each campus stop pinned first (computed over ZOU! + ORIZO with transfers and walks, on the device; pressing it opens the full trip), then the next departures of every line there (ZOU! included). |
 | Mon EDT | `(tabs)/perso.tsx` | Timetable of the selected favourite: one day with swipe on phones, week grid on wide screens. |
 | Salles | `(tabs)/salles.tsx` | Room availability grid (rooms × 30-min slots) with a draggable time cursor, search, campus filter, pinned rooms. |
 | Payer | `(tabs)/pay.tsx` | Izly balance, QR payment, history. Tab hidden unless an Izly account is linked. |
 | Carte étudiant | `src/app/card.tsx` | Digital student card with barcode (cached offline). |
-| Trajet | `src/app/trip.tsx` | Full trip opened from a Bus widget summary (`src/lib/tripStore.ts`): every vehicle with its boarding / alighting stops and times, walks, transfers and waits; below, the other trips to the same place. |
+| Trajet | `src/app/trip.tsx` | Full trip opened from a Bus widget summary (`src/lib/tripStore.ts`): every vehicle with its boarding / alighting stops and times, walks, transfers and waits. |
 | Réglages | `src/app/settings.tsx` | Theme, language, bus stops, Izly, logout; "Développement" section in dev builds only. |
 
 First launch shows the onboarding (`src/components/Onboarding.tsx`): university login → optional Izly
@@ -118,7 +118,7 @@ src/lib/                 logic: storage (keychain), store (createStore), prefs, 
                          theme, i18n/, izly/, bus + gtfsRt (buses), crous, studentCard, code128, webview, http,
                          beaconApi + analytics + content (Beacon server, see below), appUpdate (Android),
                          Bus widget trips: gtfs (shared GTFS helpers), zou (ZOU! timetable), stopCatalog +
-                         communes (ORIZO + ZOU! stops), journey (trip planner), campuses
+                         communes (ORIZO + ZOU! stops), journey (trip planner)
 scripts/gen-icons.py     regenerates src/components/Icon.tsx
 assets/icon-src/         app icon generator (Pillow)
 app.json / app.config.ts config; BEACON_PERSONAL_BUILD=1 → iOS bundle id with `.dev` suffix

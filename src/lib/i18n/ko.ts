@@ -346,7 +346,6 @@ export const ko: Record<TranslationKey, string> = {
   'trip.stops_other': '{count}개 정류장',
   'trip.transfer': '{stop}에서 환승: {duration} 대기',
   'trip.booking': '예약제: 이용 전에 ZOU!에 전화하세요.',
-  'trip.others': '{place}까지 다른 경로',
   'err.zouHttp': 'ZOU! 시간표: HTTP {status}',
   'err.zouNoTrips': '아비뇽 주변에서 ZOU! 운행편을 찾을 수 없습니다',
 };

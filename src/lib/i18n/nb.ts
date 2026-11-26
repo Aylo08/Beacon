@@ -347,7 +347,6 @@ export const nb: Record<TranslationKey, string> = {
   'trip.stops_other': '{count} holdeplasser',
   'trip.transfer': 'Bytte ved {stop}: {duration} venting',
   'trip.booking': 'Bestillingstransport: ring ZOU! før turen.',
-  'trip.others': 'Andre reiser til {place}',
   'err.zouHttp': 'ZOU!-rutetider: HTTP {status}',
   'err.zouNoTrips': 'Fant ingen ZOU!-tur rundt Avignon',
 };
