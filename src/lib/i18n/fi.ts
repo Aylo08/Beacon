@@ -91,7 +91,6 @@ export const fi: Record<TranslationKey, string> = {
   'bus.footerLive': 'ORIZO reaaliaika',
   'bus.footerScheduled': 'Aikataulun mukaiset ajat (reaaliaika ei saatavilla)',
   'bus.none24h': 'Ei busseja seuraavan 24 h aikana',
-  'bus.pinnedTo': 'Seuraava: {stop}',
   'bus.chooseStop': 'Valitse pysäkki',
   'bus.searchStop': 'Hae pysäkkiä…',
   'bus.noStop': 'Pysäkkiä ei löytynyt',
@@ -323,6 +322,7 @@ export const fi: Record<TranslationKey, string> = {
   'settings.installUpdate': 'Asenna versio {version}',
   'settings.checkUpdates': 'Tarkista päivitykset',
   // Bus widget: trips to campus from any ORIZO / ZOU! stop
+  'bus.trip.title': 'Seuraavat matkat: {campus}',
   'bus.trip.direct': 'Suora',
   'bus.trip.walk': 'Kävellen',
   'bus.trip.transfers_one': 'Vaihdot: {count}',

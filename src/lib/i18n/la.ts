@@ -92,7 +92,6 @@ export const la: Record<TranslationKey, string> = {
   'bus.footerLive': 'ORIZO tempore vero',
   'bus.footerScheduled': 'Horae statutae (tempus verum non praesto)',
   'bus.none24h': 'Nulla laophora proximis XXIV horis',
-  'bus.pinnedTo': 'Proximum ad {stop}',
   'bus.chooseStop': 'Stationem elige',
   'bus.searchStop': 'Stationem quaere…',
   'bus.noStop': 'Nulla statio inventa',
@@ -324,6 +323,7 @@ export const la: Record<TranslationKey, string> = {
   'settings.installUpdate': 'Versionem {version} institue',
   'settings.checkUpdates': 'Novam versionem quaere',
   // Bus widget: trips to campus from any ORIZO / ZOU! stop
+  'bus.trip.title': 'Proxima itinera ad {campus}',
   'bus.trip.direct': 'Directum',
   'bus.trip.walk': 'Pedibus',
   'bus.trip.transfers_one': '{count} mutatio',

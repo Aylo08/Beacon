@@ -1,9 +1,11 @@
-// "Bus": next departures of every line from one stop, each with its destination
-// — any ORIZO stop, or any ZOU! coach / train stop around Avignon (Châteaurenard,
-// Saint-Rémy…: lib/stopCatalog). The next trip to each campus is pinned first
-// (the Centre-ville / Agroparc stops chosen in the settings), computed over ORIZO
-// and ZOU! with the transfers and walks (lib/journey, scheduled times); pressing
-// it opens the full trip. The stop is picked from the whole catalog (searchable),
+// "Bus": from one stop — any ORIZO stop, or any ZOU! coach / train stop around
+// Avignon (Châteaurenard, Saint-Rémy…: lib/stopCatalog) — the next TRIPS trips to
+// where you're going, then the next departures of every line there with their
+// destination. Where you're going follows today's classes, like the now bar: the
+// campus stop of the next class (the Centre-ville / Agroparc stops chosen in the
+// settings), else, once classes are over, the home stop. The trips combine ORIZO
+// and ZOU! with their transfers and walks (lib/journey, scheduled times); pressing
+// one opens the full trip. The stop is picked from the whole catalog (searchable),
 // by "Locate me" (the nearest stop), or by the place button: the stop of the
 // nearest place among home and the two campuses; its icon shows which place is
 // nearest. The position stays in memory. ORIZO departures use the GTFS-RT feed
@@ -29,19 +31,23 @@ import {
   type Timetable,
 } from '../lib/bus';
 import { setWidgetStop, useBusPrefs, type BusPrefs } from '../lib/busPrefs';
+import { stopForCampus, toItems, useRoomCampuses } from '../lib/classPlaces';
 import { useDebug, withDebugLimited } from '../lib/debugOverride';
 import { distanceM } from '../lib/gtfs';
 import { t } from '../lib/i18n';
 import { planFromStop, type Journey, type RideLeg } from '../lib/journey';
 import { isZouStopKey, stopCatalog, stopLabel, type CatalogStop } from '../lib/stopCatalog';
+import { usePersonalData } from '../lib/personalData';
+import { useSession } from '../lib/sessionContext';
 import { makeStyles, useAppTheme } from '../lib/theme';
-import { formatTime } from '../lib/time';
+import { formatTime, parisParts } from '../lib/time';
 import { openTrip } from '../lib/tripStore';
 import { useRealtime, useTimetable, useZouTimetable } from '../lib/useBus';
 import { useNow } from '../lib/useLive';
 import { zouCached, zouDepartures } from '../lib/zou';
 
-/** Rows shown, pinned trips included. */
+/** Trips shown, then departure rows. */
+const TRIPS = 4;
 const ROWS = 4;
 
 const hhmm = formatTime;
@@ -132,33 +138,48 @@ export function BusWidget() {
   const label = stop ?? stopLabel(stopKey);
   const from = label.town ? `${label.name} · ${label.town}` : label.name;
 
-  // The next trip to each campus stop, as the next bus to each was. From Centre-ville, the Agroparc
-  // stop with a bus to Centre-ville (Agrosciences → Grand Avignon, see campusChangeStop).
-  const agroparcTarget = samePlace(stopKey, centreStop) ? campusChangeStop(campusStop) : campusStop;
+  // Where you're going: the campus of today's next class, else (classes over) home. Unknown
+  // (no timetable, no home stop, campus not found…): Centre-ville, or Agroparc from there.
+  const { events } = usePersonalData();
+  const { token } = useSession();
+  const today = parisParts(new Date(now)).day;
+  const items = useMemo(() => toItems(events), [events]);
+  const nextClass = items.find((i) => i.start > now && i.day === today);
+  const campusOf = useRoomCampuses(token, [nextClass?.room]);
+  // Signed out: the room's campus can't be looked up.
+  const nextCampus = nextClass && token ? campusOf(nextClass.room) : null;
+  const destination: { name: string; home: boolean } | null =
+    nextCampus === undefined
+      ? null // campus still loading
+      : nextClass
+        ? { name: stopForCampus(nextCampus, prefs) ?? centreStop, home: false }
+        : homeStop
+          ? { name: homeStop, home: true }
+          : { name: samePlace(stopKey, centreStop) ? campusChangeStop(campusStop) : centreStop, home: false };
+  // Already there (on the campus of the next class, at home): no trip, the departures only.
+  const target = destination && !samePlace(destination.name, stopKey) ? destination : null;
+  const targetPos = target ? timetable?.stopCoords[target.name] : undefined;
+
   // Recomputed every minute (scheduled times).
   const minute = Math.floor(now / 60_000);
-  const trips = useMemo(() => {
-    if (!stop || !timetable || zouPending) return null;
-    return [centreStop, agroparcTarget]
-      .filter((name) => !samePlace(name, stopKey))
-      .flatMap((name) => {
-        const pos = timetable.stopCoords[name];
-        if (!pos) return [];
-        const to = { lat: pos[0], lon: pos[1] };
-        return [{ to: name, journey: planFromStop(timetable, zou, stop, to, minute * 60_000, 1)[0] ?? null }];
-      });
-  }, [timetable, zou, stop, stopKey, centreStop, agroparcTarget, minute, zouPending]);
+  const trips = useMemo(
+    () =>
+      stop && targetPos && !zouPending
+        ? planFromStop(timetable, zou, stop, { lat: targetPos[0], lon: targetPos[1] }, minute * 60_000, TRIPS)
+        : null,
+    [timetable, zou, stop, targetPos, minute, zouPending],
+  );
 
   // Departures of every line there, minus the first vehicle of the trips above.
   const departures = useMemo(() => {
     if (!stop) return null;
     const orizoDeps = timetable && stop.orizo ? stopDepartures(timetable, rt, stop.orizo, now, ROWS + 2) : [];
     const zouDeps = zou && stop.zou.length ? zouDepartures(zou, stop.zou, now, ROWS + 2) : [];
-    const shown = (trips ?? []).map((p) => p.journey && firstRide(p.journey)).filter((r): r is RideLeg => !!r);
+    const shown = (trips ?? []).map(firstRide).filter((r): r is RideLeg => !!r);
     const list = [...orizoDeps, ...zouDeps]
       .filter((d) => !shown.some((r) => r.line === d.line && (r.network === 'zou') === (d.network === 'zou') && Math.abs(r.start - d.scheduled) < 60_000))
       .sort((a, b) => a.expected - b.expected)
-      .slice(0, Math.max(0, ROWS - (trips?.length ?? 0)));
+      .slice(0, ROWS);
     return withDebugLimited(list, limitedBuses);
   }, [timetable, zou, rt, stop, now, trips, limitedBuses]);
 
@@ -244,32 +265,37 @@ export function BusWidget() {
         )
       ) : (
         <View style={styles.section}>
-          {!trips ? (
-            <View style={styles.loading}>
-              <ActivityIndicator size="small" color={colors.textMuted} />
-              {!zouOnDevice && <Text style={styles.muted}>{t('bus.trip.loadingZou')}</Text>}
-            </View>
-          ) : (
-            trips.map(({ to, journey }) => (
-              <View key={to} style={styles.pinned}>
+          {target && (
+            <View style={styles.pinned}>
+              <View style={styles.pinnedHeader}>
+                <Icon name={target.home ? 'home-5-line' : 'graduation-cap-line'} size={14} color={colors.primary} />
                 <Text style={styles.pinnedLabel} numberOfLines={1}>
-                  {t('bus.pinnedTo', { stop: to })}
+                  {t('bus.trip.title', { campus: target.name })}
                 </Text>
-                {!journey ? (
-                  <Text style={styles.muted}>{t('bus.trip.none', { campus: to })}</Text>
-                ) : (
+              </View>
+              {!trips ? (
+                <View style={styles.loading}>
+                  <ActivityIndicator size="small" color={colors.textMuted} />
+                  {zouPending && !zouOnDevice && <Text style={styles.muted}>{t('bus.trip.loadingZou')}</Text>}
+                </View>
+              ) : trips.length === 0 ? (
+                <Text style={styles.muted}>{t('bus.trip.none', { campus: target.name })}</Text>
+              ) : (
+                trips.map((journey, i) => (
                   <TripSummary
+                    // Two trips can share their times (same departure, changing elsewhere).
+                    key={`${i}-${journey.departure}-${journey.arrival}`}
                     journey={journey}
                     now={now}
                     hint={t('bus.trip.open')}
                     onPress={() => {
-                      openTrip({ journey, from, to });
+                      openTrip({ journey, from, to: target.name, home: target.home });
                       router.push('/trip');
                     }}
                   />
-                )}
-              </View>
-            ))
+                ))
+              )}
+            </View>
           )}
           {zouError && !zouStop && needZou && <Text style={styles.muted}>{t('bus.trip.zouError', { error: zouError })}</Text>}
           {departures.length === 0 && <Text style={styles.muted}>{t('bus.none24h')}</Text>}
@@ -406,8 +432,9 @@ const useStyles = makeStyles((c) => ({
   pressed: { opacity: 0.6 },
   error: { fontSize: 12, color: c.danger },
   section: { gap: 6 },
-  pinned: { gap: 4, padding: 8, marginHorizontal: -8, borderRadius: 10, backgroundColor: c.surfaceAlt },
-  pinnedLabel: { fontSize: 11, fontWeight: '700', color: c.primary, letterSpacing: 0.3 },
+  pinned: { gap: 10, padding: 8, marginHorizontal: -8, borderRadius: 10, backgroundColor: c.surfaceAlt },
+  pinnedHeader: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  pinnedLabel: { flex: 1, fontSize: 11, fontWeight: '700', color: c.primary, letterSpacing: 0.3 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   times: { flex: 1 },
   headsign: { fontSize: 15, fontWeight: '600', color: c.text },

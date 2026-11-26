@@ -102,7 +102,6 @@ export const fr = {
   'bus.footerLive': 'Temps réel ORIZO',
   'bus.footerScheduled': 'Horaires théoriques (temps réel indisponible)',
   'bus.none24h': 'Aucun bus dans les prochaines 24 h',
-  'bus.pinnedTo': 'Prochain vers {stop}',
   'bus.chooseStop': 'Choisir un arrêt',
   'bus.searchStop': 'Rechercher un arrêt…',
   'bus.noStop': 'Aucun arrêt trouvé',
@@ -352,6 +351,7 @@ export const fr = {
   'settings.installUpdate': 'Installer la version {version}',
   'settings.checkUpdates': 'Rechercher une mise à jour',
   // Bus widget: trips to campus from any ORIZO / ZOU! stop
+  'bus.trip.title': 'Prochains trajets vers {campus}',
   'bus.trip.direct': 'Direct',
   'bus.trip.walk': 'À pied',
   'bus.trip.transfers_one': '{count} correspondance',

@@ -91,7 +91,6 @@ export const ar: Record<TranslationKey, string> = {
   'bus.footerLive': 'الوقت الفعلي ORIZO',
   'bus.footerScheduled': 'المواعيد المجدولة (الوقت الفعلي غير متاح)',
   'bus.none24h': 'لا حافلات خلال الـ24 ساعة القادمة',
-  'bus.pinnedTo': 'التالي إلى {stop}',
   'bus.chooseStop': 'اختر محطة',
   'bus.searchStop': 'ابحث عن محطة…',
   'bus.noStop': 'لم يُعثر على أي محطة',
@@ -323,6 +322,7 @@ export const ar: Record<TranslationKey, string> = {
   'settings.installUpdate': 'تثبيت الإصدار {version}',
   'settings.checkUpdates': 'البحث عن تحديثات',
   // Bus widget: trips to campus from any ORIZO / ZOU! stop
+  'bus.trip.title': 'الرحلات القادمة إلى {campus}',
   'bus.trip.direct': 'مباشر',
   'bus.trip.walk': 'سيرًا على الأقدام',
   'bus.trip.transfers_one': 'التبديلات: {count}',

@@ -90,7 +90,6 @@ export const nl: Record<TranslationKey, string> = {
   'bus.footerLive': 'ORIZO realtime',
   'bus.footerScheduled': 'Geplande tijden (realtime niet beschikbaar)',
   'bus.none24h': 'Geen bussen in de komende 24 u',
-  'bus.pinnedTo': 'Volgende naar {stop}',
   'bus.chooseStop': 'Halte kiezen',
   'bus.searchStop': 'Halte zoeken…',
   'bus.noStop': 'Geen halte gevonden',
@@ -322,6 +321,7 @@ export const nl: Record<TranslationKey, string> = {
   'settings.installUpdate': 'Versie {version} installeren',
   'settings.checkUpdates': 'Zoeken naar updates',
   // Bus widget: trips to campus from any ORIZO / ZOU! stop
+  'bus.trip.title': 'Volgende ritten naar {campus}',
   'bus.trip.direct': 'Direct',
   'bus.trip.walk': 'Te voet',
   'bus.trip.transfers_one': '{count} overstap',
